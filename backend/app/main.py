@@ -25,6 +25,8 @@ from app.models.schemas import (
 from app.models.db_models import ScanHistory, User
 from app.auth import router as auth_router, get_current_user_optional
 
+
+
 # ─────────────────────────────────────────────
 # Logging
 # ─────────────────────────────────────────────
@@ -38,7 +40,7 @@ app = FastAPI(title="Website Audit Tool API", version="2.0.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],          # Restrict to your domain in production
+    allow_origins=["https://eight25-assessment.vercel.app/"], 
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

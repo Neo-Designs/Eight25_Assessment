@@ -7,7 +7,7 @@ import {
   WifiOff, TrendingUp, GitCompare,
 } from 'lucide-react';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL';
 
 interface HistoryItem {
   id: number;
@@ -58,7 +58,7 @@ export default function HistoryPage() {
       const isOffline = err instanceof TypeError && err.message.toLowerCase().includes('fetch');
       setHistoryError(
         isOffline
-          ? 'Cannot reach backend (http://localhost:8000). Is the FastAPI server running?'
+          ? 'Cannot reach backend (process.env.NEXT_PUBLIC_API_URL). Is the FastAPI server running?'
           : (err instanceof Error ? err.message : 'Unexpected error while loading history.')
       );
       setHistoryState('error');

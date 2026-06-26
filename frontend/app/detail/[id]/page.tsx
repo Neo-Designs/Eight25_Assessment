@@ -105,7 +105,8 @@ export default function AuditDetailPage() {
     // 2. Fallback: fetch from API
     const fetchLogFromAPI = async () => {
       try {
-        const res = await fetch(`http://localhost:8000/api/audit/${logId}/results`);
+        const API_BASE = process.env.NEXT_PUBLIC_API_URL;
+        const res = await fetch(`${API_BASE}/api/audit/${logId}/results`);
         if (!res.ok) throw new Error('Failed to load audit detail log');
         setAuditData(await res.json());
       } catch (err: unknown) {
@@ -134,7 +135,8 @@ export default function AuditDetailPage() {
     setChatLoading(true);
 
     try {
-      const res = await fetch('http://localhost:8000/api/chat', {
+      const API_BASE = process.env.NEXT_PUBLIC_API_URL;
+      const res = await fetch(`${API_BASE}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ log_id: logId, message: userMsg, history: messages }),

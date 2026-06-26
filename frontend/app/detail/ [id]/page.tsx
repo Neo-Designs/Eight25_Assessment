@@ -109,7 +109,8 @@ export default function AuditDetailPage() {
     // Fallback: fetch logs from API and find matching ID
     const fetchLogFromAPI = async () => {
       try {
-        const res = await fetch('http://localhost:8000/api/logs');
+        const API_BASE = process.env.NEXT_PUBLIC_API_URL;
+        const res = await fetch(`${API_BASE}/api/logs`);
         if (!res.ok) throw new Error("Failed to load audit detail log");
         
         const logs = await res.json();
@@ -150,7 +151,8 @@ export default function AuditDetailPage() {
   // Load trace prompt details when drawer opens
   useEffect(() => {
     if (showInsightLogs && !dbLogDetail && auditData) {
-      fetch('http://localhost:8000/api/logs')
+      const API_BASE = process.env.NEXT_PUBLIC_API_URL;
+      fetch(`${API_BASE}/api/logs`)
         .then(res => res.json())
         .then(logs => {
           const match = logs.find((l: any) => l.id === logId);
@@ -179,7 +181,8 @@ export default function AuditDetailPage() {
     setChatLoading(true);
 
     try {
-      const res = await fetch('http://localhost:8000/api/chat', {
+      const API_BASE = process.env.NEXT_PUBLIC_API_URL;
+      const res = await fetch(`${API_BASE}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

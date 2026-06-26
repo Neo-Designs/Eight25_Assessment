@@ -18,7 +18,8 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const res = await fetch('http://localhost:8000/api/auth/login', {
+        const API_BASE = process.env.NEXT_PUBLIC_API_URL;
+      const res = await fetch(`${API_BASE}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -32,7 +33,7 @@ export default function LoginPage() {
       const { access_token } = await res.json();
       
       // Fetch user data
-      const userRes = await fetch('http://localhost:8000/api/auth/me', {
+      const userRes = await fetch(`${API_BASE}/api/auth/me`, {
         headers: { Authorization: `Bearer ${access_token}` },
       });
       
