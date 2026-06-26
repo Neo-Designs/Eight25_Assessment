@@ -5,6 +5,9 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Loader2, ShieldAlert, Sparkles, Check } from 'lucide-react';
 
+import { apiPost, getErrorMessage } from '@/lib/api';
+import ErrorCard from '@/components/ErrorCard';
+
 const STAGES = [
   { label: 'Initializing Page Scraper', desc: 'Booting headless Chromium context' },
   { label: 'Analyzing DOM Structure', desc: 'Extracting word count, CTA buttons, headings, and image alts' },
@@ -51,18 +54,7 @@ function AuditLoadingContent() {
 
     const runAudit = async () => {
       try {
-        const res = await fetch('http://localhost:8000/api/audit/start', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ url, weights })
-        });
-
-        if (!res.ok) {
-          const detail = await res.json();
-          throw new Error(detail.detail || 'Audit processing failed');
-        }
-
-        const data = await res.json();
+        const data = await apiPost<{ audit_id: number }>('/api/audit/start', { url, weights });
         
         // Wait slightly for visual completion
         setTimeout(() => {
@@ -70,7 +62,7 @@ function AuditLoadingContent() {
         }, 1500);
 
       } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : 'Failed to connect to audit server.');
+        setError(getErrorMessage(err, 'Failed to connect to audit server.'));
       }
     };
 
@@ -83,19 +75,11 @@ function AuditLoadingContent() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-light-bg dark:bg-dark-bg flex flex-col items-center justify-center p-6 text-light-text dark:text-dark-text">
-        <div className="max-w-md w-full bg-light-surface dark:bg-dark-surface border border-rose-500/20 p-8 rounded-3xl text-center space-y-4 shadow-2xl">
-          <ShieldAlert className="h-12 w-12 text-rose-500 mx-auto" />
-          <h1 className="text-xl font-bold text-light-text dark:text-dark-text">Analysis Failed</h1>
-          <p className="text-secondary text-sm">{error}</p>
-          <button
-            onClick={() => router.push('/')}
-            className="w-full bg-primary hover:bg-primary-hover text-white font-medium py-2 rounded-xl transition text-sm"
-          >
-            Return Home
-          </button>
-        </div>
-      </div>
+      <ErrorCard
+        icon={<ShieldAlert className="h-12 w-12 text-rose-500" />}
+        title="Analysis Failed"
+        message={error}
+      />
     );
   }
 

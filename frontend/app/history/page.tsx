@@ -7,31 +7,10 @@ import {
   WifiOff, TrendingUp, GitCompare,
 } from 'lucide-react';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000';
-
-interface HistoryItem {
-  id: number;
-  timestamp: string | null;
-  url: string;
-  seo_score: number | null;
-}
-
-type FetchState = 'idle' | 'loading' | 'error' | 'success';
-
-function getScoreColor(score: number | null) {
-  if (score === null) return 'text-secondary bg-secondary/10 border-secondary/20';
-  if (score >= 85) return 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30';
-  if (score >= 60) return 'text-amber-400 bg-amber-500/10 border-amber-500/30';
-  return 'text-rose-400 bg-rose-500/10 border-rose-500/30';
-}
-
-function ScoreBadge({ score }: { score: number | null }) {
-  return (
-    <span className={`inline-flex items-center px-2.5 py-1 rounded-lg border text-xs font-bold font-mono ${getScoreColor(score)}`}>
-      {score !== null ? `${score}/100` : 'N/A'}
-    </span>
-  );
-}
+import { apiFetch, getErrorMessage } from '@/lib/api';
+import type { HistoryItem, FetchState } from '@/lib/types';
+import ScoreBadge from '@/components/ScoreBadge';
+import Footer from '@/components/Footer';
 
 export default function HistoryPage() {
   const router = useRouter();
@@ -44,23 +23,11 @@ export default function HistoryPage() {
     setHistoryState('loading');
     setHistoryError(null);
     try {
-      const res = await fetch(`${API_BASE}/api/history`, {
-        signal: AbortSignal.timeout(10_000),
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body?.detail ?? `Server error ${res.status}`);
-      }
-      const data: HistoryItem[] = await res.json();
+      const data = await apiFetch<HistoryItem[]>('/api/history', { timeoutMs: 10_000 });
       setHistoryItems(data);
       setHistoryState('success');
     } catch (err: unknown) {
-      const isOffline = err instanceof TypeError && err.message.toLowerCase().includes('fetch');
-      setHistoryError(
-        isOffline
-          ? 'Cannot reach backend (http://localhost:8000). Is the FastAPI server running?'
-          : (err instanceof Error ? err.message : 'Unexpected error while loading history.')
-      );
+      setHistoryError(getErrorMessage(err, 'Unexpected error while loading history.'));
       setHistoryState('error');
     }
   }, []);
@@ -207,9 +174,7 @@ export default function HistoryPage() {
         )}
       </main>
 
-      <footer className="border-t border-border bg-light-surface/70 dark:bg-dark-surface/70 py-6 text-center text-xs text-secondary">
-        &copy; 2026 EIGHT25MEDIA &middot; WebCrawler — Professional SEO &amp; Conversion Audit Platform
-      </footer>
+      <Footer />
     </div>
   );
 }

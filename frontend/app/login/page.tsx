@@ -5,6 +5,9 @@ import { useAuth } from '@/context/AuthContext';
 import { ShieldCheck, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 
+import { authenticateAndFetchUser } from '@/lib/auth-helpers';
+import { getErrorMessage } from '@/lib/api';
+
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -18,30 +21,13 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const res = await fetch('http://localhost:8000/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
-
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.detail || 'Login failed');
-      }
-
-      const { access_token } = await res.json();
-      
-      // Fetch user data
-      const userRes = await fetch('http://localhost:8000/api/auth/me', {
-        headers: { Authorization: `Bearer ${access_token}` },
-      });
-      
-      if (!userRes.ok) throw new Error('Failed to fetch user details');
-      
-      const userData = await userRes.json();
-      login(access_token, userData);
+      const { access_token, user } = await authenticateAndFetchUser(
+        '/api/auth/login',
+        { email, password },
+      );
+      login(access_token, user);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'An error occurred during login');
+      setError(getErrorMessage(err, 'An error occurred during login'));
     } finally {
       setLoading(false);
     }

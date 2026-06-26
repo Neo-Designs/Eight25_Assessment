@@ -5,30 +5,9 @@ import {
   BarChart3, Target, Loader2, WifiOff, GitCompare,
 } from 'lucide-react';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000';
-
-interface ScrapedPageData {
-  url: string;
-  meta_title: string | null;
-  meta_description: string | null;
-  word_count: number;
-  cta_count: number;
-  headings: { h1_count: number; h2_count: number; h3_count: number };
-  links: {
-    total_links: number;
-    internal_links: number;
-    external_links: number;
-    ratio_internal_external: number;
-  };
-  images: {
-    total_images: number;
-    images_with_alt: number;
-    images_without_alt: number;
-    alt_text_coverage_pct: number;
-  };
-}
-
-type FetchState = 'idle' | 'loading' | 'error' | 'success';
+import { apiPost, getErrorMessage } from '@/lib/api';
+import type { ScrapedPageData, FetchState } from '@/lib/types';
+import Footer from '@/components/Footer';
 
 function DriftVariance({ primary, competitor }: { primary: number; competitor: number }) {
   const delta = primary - competitor;
@@ -77,23 +56,15 @@ export default function DriftPage() {
     setDriftResult(null);
 
     try {
-      const res = await fetch(`${API_BASE}/api/drift`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: primaryUrl, competitor_url: competitorUrl }),
-        signal: AbortSignal.timeout(60_000),
-      });
-
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body?.detail ?? `Server error ${res.status}`);
-      }
-
-      const data = await res.json();
+      const data = await apiPost<{ primary_data: ScrapedPageData; competitor_data: ScrapedPageData }>(
+        '/api/drift',
+        { url: primaryUrl, competitor_url: competitorUrl },
+        { timeoutMs: 60_000 },
+      );
       setDriftResult({ primary: data.primary_data, competitor: data.competitor_data });
       setDriftState('success');
     } catch (err: unknown) {
-      setDriftError(err instanceof Error ? err.message : 'Drift comparison failed — check both URLs and the backend.');
+      setDriftError(getErrorMessage(err, 'Drift comparison failed — check both URLs and the backend.'));
       setDriftState('error');
     }
   };
@@ -341,9 +312,7 @@ export default function DriftPage() {
 
       </main>
 
-      <footer className="border-t border-border bg-light-surface/70 dark:bg-dark-surface/70 py-6 text-center text-xs text-secondary">
-        &copy; 2026 EIGHT25MEDIA &middot; WebCrawler — Professional SEO &amp; Conversion Audit Platform
-      </footer>
+      <Footer />
     </div>
   );
 }

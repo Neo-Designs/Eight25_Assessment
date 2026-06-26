@@ -8,6 +8,8 @@ import {
   ShieldCheck, Database, GitCompare, Clock,
 } from 'lucide-react';
 
+import Footer from '@/components/Footer';
+
 /* ─────────────────────────────────────────────────────────────
    Spiderweb SVG — client-only to avoid SSR/hydration mismatch.
    ───────────────────────────────────────────────────────────── */
@@ -338,9 +340,7 @@ export default function LandingPage() {
       </main>
 
       {/* ── Footer ───────────────────────────────────────── */}
-      <footer className="border-t border-border bg-light-surface/70 dark:bg-dark-surface/70 py-6 text-center text-xs text-secondary">
-        <p>&copy; 2026 EIGHT25MEDIA &middot; WebCrawler — Professional SEO & Conversion Audit Platform</p>
-      </footer>
+      <Footer />
     </div>
   );
 }

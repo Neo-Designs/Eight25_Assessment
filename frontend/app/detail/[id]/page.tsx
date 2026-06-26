@@ -8,70 +8,11 @@ import {
   ShieldCheck, MessageSquare, Send, Loader2
 } from 'lucide-react';
 
-interface GroundingSource {
-  metric_name: string;
-  metric_value: string;
-}
-
-interface AuditFinding {
-  category: string;
-  observation: string;
-  impact: string;
-  grounding: GroundingSource[];
-}
-
-interface ActionableRecommendation {
-  priority: number;
-  title: string;
-  details: string;
-  expected_outcome: string;
-  confidence_score: number;
-  grounding: GroundingSource[];
-}
-
-interface AIAuditOutput {
-  overall_seo_health_score: number;
-  summary: string;
-  findings: AuditFinding[];
-  recommendations: ActionableRecommendation[];
-}
-
-interface ScrapedPageData {
-  url: string;
-  meta_title: string | null;
-  meta_description: string | null;
-  word_count: number;
-  cta_count: number;
-  headings: {
-    h1_count: number;
-    h2_count: number;
-    h3_count: number;
-    headings_list: Array<{ tag: string; text: string }>;
-  };
-  links: {
-    total_links: number;
-    internal_links: number;
-    external_links: number;
-    ratio_internal_external: number;
-  };
-  images: {
-    total_images: number;
-    images_with_alt: number;
-    images_without_alt: number;
-    alt_text_coverage_pct: number;
-  };
-}
-
-interface AuditResponse {
-  scraped_data: ScrapedPageData;
-  audit_output: AIAuditOutput;
-  log_id: number;
-}
-
-interface ChatMessage {
-  role: 'user' | 'assistant';
-  content: string;
-}
+import { apiFetch, apiPost, getErrorMessage } from '@/lib/api';
+import { getScoreColor, getPriorityBadgeProps } from '@/lib/scores';
+import type { AuditResponse, ChatMessage } from '@/lib/types';
+import ErrorCard from '@/components/ErrorCard';
+import Footer from '@/components/Footer';
 
 export default function AuditDetailPage() {
   const router = useRouter();
@@ -105,11 +46,10 @@ export default function AuditDetailPage() {
     // 2. Fallback: fetch from API
     const fetchLogFromAPI = async () => {
       try {
-        const res = await fetch(`http://localhost:8000/api/audit/${logId}/results`);
-        if (!res.ok) throw new Error('Failed to load audit detail log');
-        setAuditData(await res.json());
+        const data = await apiFetch<AuditResponse>(`/api/audit/${logId}/results`);
+        setAuditData(data);
       } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : 'Failed to load audit detail.');
+        setError(getErrorMessage(err, 'Failed to load audit detail.'));
       } finally {
         setLoading(false);
       }
@@ -134,13 +74,9 @@ export default function AuditDetailPage() {
     setChatLoading(true);
 
     try {
-      const res = await fetch('http://localhost:8000/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ log_id: logId, message: userMsg, history: messages }),
+      const data = await apiPost<{ response: string }>('/api/chat', {
+        log_id: logId, message: userMsg, history: messages,
       });
-      if (!res.ok) throw new Error('Assistant response failed');
-      const data = await res.json();
       setMessages(prev => [...prev, { role: 'assistant', content: data.response }]);
     } catch {
       setMessages(prev => [
@@ -152,21 +88,7 @@ export default function AuditDetailPage() {
     }
   };
 
-  // ── Helpers ───────────────────────────────────────────────────────────────
-  const getScoreColor = (score: number) => {
-    if (score >= 85) return 'text-emerald-500 border-emerald-500/20 bg-emerald-500/10';
-    if (score >= 60) return 'text-amber-500 border-amber-500/20 bg-amber-500/10';
-    return 'text-rose-500 border-rose-500/20 bg-rose-500/10';
-  };
 
-  const getPriorityBadge = (priority: number) => {
-    switch (priority) {
-      case 1: return <span className="px-2 py-0.5 text-xs font-semibold rounded bg-rose-500/10 text-rose-400 border border-rose-500/20">Critical (P1)</span>;
-      case 2: return <span className="px-2 py-0.5 text-xs font-semibold rounded bg-orange-500/10 text-orange-400 border border-orange-500/20">High (P2)</span>;
-      case 3: return <span className="px-2 py-0.5 text-xs font-semibold rounded bg-amber-500/10 text-amber-400 border border-amber-500/20">Medium (P3)</span>;
-      default: return <span className="px-2 py-0.5 text-xs font-semibold rounded bg-secondary/10 text-secondary border border-secondary/20">Low (P4+)</span>;
-    }
-  };
 
   // ── Guard: Loading ────────────────────────────────────────────────────────
   if (loading) {
@@ -181,19 +103,11 @@ export default function AuditDetailPage() {
   // ── Guard: Error or no data ───────────────────────────────────────────────
   if (error || !auditData) {
     return (
-      <div className="min-h-screen bg-light-bg dark:bg-dark-bg flex flex-col items-center justify-center p-6 text-light-text dark:text-dark-text">
-        <div className="max-w-md w-full bg-light-surface dark:bg-dark-surface border border-rose-500/20 p-8 rounded-3xl text-center space-y-4 shadow-2xl">
-          <AlertCircle className="h-12 w-12 text-rose-500 mx-auto" />
-          <h1 className="text-xl font-bold text-light-text dark:text-dark-text">Log Record Error</h1>
-          <p className="text-secondary text-sm">{error ?? 'Could not locate audit details'}</p>
-          <button
-            onClick={() => router.push('/')}
-            className="w-full bg-primary hover:bg-primary-hover text-white font-medium py-2 rounded-xl transition text-sm"
-          >
-            Return Home
-          </button>
-        </div>
-      </div>
+      <ErrorCard
+        icon={<AlertCircle className="h-12 w-12 text-rose-500" />}
+        title="Log Record Error"
+        message={error ?? 'Could not locate audit details'}
+      />
     );
   }
 
@@ -335,7 +249,7 @@ export default function AuditDetailPage() {
                 <div key={idx} className="bg-light-surface dark:bg-dark-surface border border-border rounded-2xl p-5 space-y-3">
                   <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-2.5">
                     <div className="flex items-center space-x-2.5">
-                      {getPriorityBadge(rec.priority)}
+                      {(() => { const badge = getPriorityBadgeProps(rec.priority); return <span className={`px-2 py-0.5 text-xs font-semibold rounded ${badge.className}`}>{badge.label}</span>; })()}
                       <h3 className="font-bold text-sm text-light-text dark:text-dark-text">{rec.title}</h3>
                     </div>
                     <span className="text-[10px] text-primary font-mono">
@@ -428,9 +342,7 @@ export default function AuditDetailPage() {
       </main>
 
       {/* ── Footer ─────────────────────────────────────────────────── */}
-      <footer className="border-t border-border bg-light-surface/70 dark:bg-dark-surface/70 py-6 text-center text-xs text-secondary">
-        <p>&copy; 2026 EIGHT25MEDIA &middot; WebCrawler — Professional SEO &amp; Conversion Audit Platform</p>
-      </footer>
+      <Footer />
     </div>
   );
 }

@@ -14,7 +14,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from typing import List, Dict, Any, Optional
 
-from app.database import init_db, get_db, log_scan_history, get_scan_history
+from app.database import init_db, get_db, log_scan_history, get_scan_history, get_scan_history_or_404, format_timestamp, parse_audit_json
 from app.scraper import PlaywrightScraper
 from app.analyzer import AnalyzerService
 from app.ai_engine import AIEngine
@@ -126,7 +126,7 @@ def get_history(
     return [
         HistoryItem(
             id=log.id,
-            timestamp=log.timestamp.isoformat() if log.timestamp else None,
+            timestamp=format_timestamp(log),
             url=log.url,
             seo_score=log.seo_score,
         )
@@ -199,32 +199,20 @@ async def audit_results(audit_id: int, db: Session = Depends(get_db)):
     Returns the full structured metrics and AI insights for a specific audit ID.
     Attempts in-memory cache first, falls back to DB for historical IDs.
     """
-    log_entry: Optional[ScanHistory] = db.query(ScanHistory).filter(ScanHistory.id == audit_id).first()
-    if not log_entry:
-        raise HTTPException(status_code=404, detail=f"Audit #{audit_id} not found.")
+    log_entry = get_scan_history_or_404(db, audit_id)
 
     cached = _audit_cache.get(audit_id)
-
-    scraped_data_out: Optional[ScrapedPageData] = None
-    audit_output_out: Optional[AIAuditOutput] = None
 
     if cached:
         scraped_data_out = cached["scraped_data"]
         audit_output_out = cached["audit_output"]
     else:
-        # Reconstruct audit_output and scraped_data from persisted JSON
-        try:
-            audit_dict = json.loads(log_entry.audit_findings)
-            audit_output_out = AIAuditOutput(**audit_dict)
-            scraped_dict = json.loads(log_entry.scraped_data_snapshot)
-            scraped_data_out = ScrapedPageData(**scraped_dict)
-        except Exception as e:
-            logger.warning(f"[audit/results] Could not parse stored response for #{audit_id}: {e}")
+        scraped_data_out, audit_output_out = parse_audit_json(log_entry)
 
     return AuditResultsResponse(
         log_id=log_entry.id,
         url=log_entry.url,
-        timestamp=log_entry.timestamp.isoformat() if log_entry.timestamp else None,
+        timestamp=format_timestamp(log_entry),
         seo_score=log_entry.seo_score,
         scraped_data=scraped_data_out,
         audit_output=audit_output_out,
@@ -238,14 +226,12 @@ def audit_logs(audit_id: int, db: Session = Depends(get_db)):
     Returns the raw Prompt Logs / Reasoning Traces for full transparency.
     This feeds the 'Audit Insight' / prompt-log drawer in the frontend.
     """
-    log_entry: Optional[ScanHistory] = db.query(ScanHistory).filter(ScanHistory.id == audit_id).first()
-    if not log_entry:
-        raise HTTPException(status_code=404, detail=f"Audit log #{audit_id} not found.")
+    log_entry = get_scan_history_or_404(db, audit_id)
 
     return AuditLogsResponse(
         log_id=log_entry.id,
         url=log_entry.url,
-        timestamp=log_entry.timestamp.isoformat() if log_entry.timestamp else None,
+        timestamp=format_timestamp(log_entry),
         system_prompt=log_entry.system_prompt,
         user_prompt=log_entry.user_prompt,
     )
@@ -273,16 +259,11 @@ async def perform_drift_analysis(request: DriftRequest):
 @app.post("/api/chat", response_model=ChatResponse, tags=["Chat"])
 async def chat_reasoning(request: ChatRequest, db: Session = Depends(get_db)):
     """Stateless multi-turn chat grounded in the stored audit output."""
-    log_entry = db.query(ScanHistory).filter(ScanHistory.id == request.log_id).first()
-    if not log_entry:
-        raise HTTPException(status_code=404, detail="Audit log entry not found")
+    log_entry = get_scan_history_or_404(db, request.log_id)
     try:
-        try:
-            audit_output_dict = json.loads(log_entry.audit_findings)
-            scraped_data_dict = json.loads(log_entry.scraped_data_snapshot)
-        except Exception:
-            audit_output_dict = {"raw_content": log_entry.audit_findings}
-            scraped_data_dict = {"url": log_entry.url}
+        scraped_data_parsed, audit_output_parsed = parse_audit_json(log_entry)
+        audit_output_dict = audit_output_parsed.model_dump() if audit_output_parsed else {"raw_content": log_entry.audit_findings}
+        scraped_data_dict = scraped_data_parsed.model_dump() if scraped_data_parsed else {"url": log_entry.url}
 
         chat_reply = await ai_engine.run_chat(
             scraped_data=scraped_data_dict,
