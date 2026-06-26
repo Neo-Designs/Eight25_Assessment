@@ -12,8 +12,7 @@ RUN pip install --no-cache-dir --user -r requirements.txt
 
 # Install Playwright and browsers to a known location
 RUN pip install --no-cache-dir --user playwright && \
-    python -m playwright install chromium --with-deps
-
+    python -m playwright install chromium
 # --- Stage 2: Runtime ---
 FROM python:3.11-slim
 
