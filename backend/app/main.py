@@ -1,6 +1,5 @@
-import asyncio
-import sys
-
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 # Force the ProactorEventLoop on Windows
 if sys.platform == 'win32':
     asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
@@ -26,6 +25,24 @@ from app.models.db_models import ScanHistory, User
 from app.auth import router as auth_router, get_current_user_optional
 
 
+app = FastAPI()
+
+# THIS MUST BE AT THE TOP
+app.add_middleware(
+    CORSMiddleware,
+    
+    allow_origins=["https://eight25-assessment.vercel.app"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+app.include_router(auth_router)
+
+
+
+
+
+
 
 # ─────────────────────────────────────────────
 # Logging
@@ -36,17 +53,8 @@ logger = logging.getLogger("audit_tool")
 # ─────────────────────────────────────────────
 # App + CORS
 # ─────────────────────────────────────────────
-app = FastAPI(title="Website Audit Tool API", version="2.0.0")
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["https://eight25-assessment.vercel.app/"], 
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
-app.include_router(auth_router)
 
 # ─────────────────────────────────────────────
 # Singletons
