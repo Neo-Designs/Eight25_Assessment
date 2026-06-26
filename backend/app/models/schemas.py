@@ -65,4 +65,30 @@ class AIAuditOutput(BaseModel):
     overall_seo_health_score: int = Field(..., ge=0, le=100, description="Overall SEO health score out of 100 based on metrics")
     summary: str = Field(..., description="High-level markdown summary of the audit's findings and strategic direction")
     findings: List[AuditFinding] = Field(..., description="Detailed pass-1 audit findings grouped by category")
-    recommendations: List[ActionableRecommendation] = Field(..., description="Pass-2 prioritized and actionable recommendations")
+    recommendations: List[ActionableRecommendation] = Field(
+        ..., 
+        min_length=3, 
+        max_length=5, 
+        description="Pass-2 prioritized and actionable recommendations. You MUST return between 3 and 5 recommendations depending on the page's optimization needs."
+    )
+
+class ChatMessage(BaseModel):
+    role: str = Field(..., description="'user' or 'assistant'")
+    content: str = Field(..., description="The message text")
+
+class ChatRequest(BaseModel):
+    log_id: int = Field(..., description="The ID of the audit log to reference")
+    message: str = Field(..., description="The new user message")
+    history: List[ChatMessage] = Field(default=[], description="Previous conversation messages")
+
+class ChatResponse(BaseModel):
+    response: str = Field(..., description="Markdown-rendered response from the assistant explaining the audit details")
+
+class DriftRequest(BaseModel):
+    url: str = Field(..., description="Primary website URL")
+    competitor_url: str = Field(..., description="Competitor website URL")
+
+class DriftResponse(BaseModel):
+    primary_data: ScrapedPageData = Field(..., description="Metrics for the primary website")
+    competitor_data: ScrapedPageData = Field(..., description="Metrics for the competitor website")
+

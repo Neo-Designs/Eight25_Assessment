@@ -1,7 +1,7 @@
 import os
 import re
 import json
-from typing import Tuple
+from typing import Optional, Dict, Tuple
 from dotenv import load_dotenv
 import google.generativeai as genai
 import openai
@@ -103,9 +103,14 @@ class AIEngine:
         
         return rendered
 
-    async def run_audit(self, data: ScrapedPageData) -> Tuple[AIAuditOutput, str, str]:
+    async def run_audit(self, data: ScrapedPageData, weights: Optional[Dict[str, float]] = None) -> Tuple[AIAuditOutput, str, str]:
         system_prompt, user_prompt_template = self._load_prompts()
         user_prompt = self._render_user_prompt(user_prompt_template, data)
+        
+        # Inject custom sliders weights if provided
+        if weights:
+            weight_instruction = f"\n\n[USER CUSTOM WEIGHTING OPTIONS]\nWhen auditing, weigh findings according to these proportions: {json.dumps(weights)}. Ensure your overall health score calculation and recommendation prioritizations heavily emphasize categories with higher weights."
+            user_prompt += weight_instruction
         
         if self.provider == "mock":
             # Return high-quality mock data when keys are missing so the tool remains interactive
@@ -141,6 +146,26 @@ class AIEngine:
                         "grounding": [
                             {"metric_name": "alt_text_coverage_pct", "metric_value": f"{data.images.alt_text_coverage_pct}%"}
                         ]
+                    },
+                    {
+                        "priority": 2,
+                        "title": "Consolidate H1 Headings",
+                        "details": "Ensure only one H1 heading is present on the page.",
+                        "expected_outcome": "Improved crawling crawlability and hierarchy structure alignment.",
+                        "confidence_score": 0.90,
+                        "grounding": [
+                            {"metric_name": "h1_count", "metric_value": str(data.headings.h1_count)}
+                        ]
+                    },
+                    {
+                        "priority": 3,
+                        "title": "Improve CTA Copy Context",
+                        "details": "Update CTA button descriptions to use clear, conversion-oriented copy.",
+                        "expected_outcome": "Increases click-through rate and user conversion alignment.",
+                        "confidence_score": 0.80,
+                        "grounding": [
+                            {"metric_name": "cta_count", "metric_value": str(data.cta_count)}
+                        ]
                     }
                 ]
             )
@@ -160,3 +185,45 @@ class AIEngine:
         except Exception as e:
             # If API call fails, raise or fallback
             raise RuntimeError(f"Error calling LLM provider {self.provider}: {str(e)}")
+
+    async def run_chat(self, scraped_data: dict, audit_output: dict, message: str, history: list) -> str:
+        # Load system persona prompt
+        system_prompt, _ = self._load_prompts()
+        system_chat_prompt = (
+            f"{system_prompt}\n\n"
+            f"You are now in interactive Q&A mode. The user will ask questions to explain findings and recommendations further.\n"
+            f"Ground your explanations in the following scraped metrics and audit results:\n"
+            f"Scraped Data: {json.dumps(scraped_data)}\n"
+            f"Audit Findings: {json.dumps(audit_output)}\n\n"
+            f"FORMATTING RULES — follow these strictly:\n"
+            f"- NEVER write long paragraphs or walls of text. Break everything into clear, scannable sections.\n"
+            f"- Always start with a short 1-2 sentence direct answer to the question.\n"
+            f"- Use bullet points (- item) for lists of issues, steps, or recommendations.\n"
+            f"- Use **bold** only for key terms or metric names.\n"
+            f"- Use ### headers only when the answer has multiple distinct sections.\n"
+            f"- Keep your total response under 200 words unless the question truly requires depth.\n"
+            f"- Use plain, professional English. Avoid jargon or overly technical language.\n"
+            f"- End with a short actionable takeaway if relevant.\n"
+        )
+
+        if self.provider == "mock":
+            return f"**[MOCK CHAT RESPONSE]** I have reviewed the audit logs and your question: *\"{message}\"*. To optimize this webpage, you should focus on resolving the accessibility gaps (e.g. alt text coverage) and ensuring clear link architecture."
+
+        try:
+            # Construct messages array
+            formatted_messages = [{"role": "system", "content": system_chat_prompt}]
+            for msg in history:
+                formatted_messages.append({"role": msg.role, "content": msg.content})
+            formatted_messages.append({"role": "user", "content": message})
+
+            # Use standard non-instructor client completions for free-form text chat
+            # Retrieve the underlying un-wrapped client or call completions directly
+            raw_client = self.client.client if hasattr(self.client, 'client') else self.client
+            chat_completion = raw_client.chat.completions.create(
+                model=self.model_name,
+                messages=formatted_messages
+            )
+            return chat_completion.choices[0].message.content
+        except Exception as e:
+            return f"Error communicating with assistant: {str(e)}"
+
