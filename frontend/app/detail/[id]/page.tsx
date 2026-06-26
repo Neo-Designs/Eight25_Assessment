@@ -97,8 +97,8 @@ export default function AuditDetailPage() {
         setAuditData(JSON.parse(cached));
         setLoading(false);
         return;
-      } catch (err) {
-        console.error('Error parsing cached audit', err);
+      } catch (_err) {
+        console.error('Error parsing cached audit', _err);
       }
     }
 
@@ -108,8 +108,8 @@ export default function AuditDetailPage() {
         const res = await fetch(`http://localhost:8000/api/audit/${logId}/results`);
         if (!res.ok) throw new Error('Failed to load audit detail log');
         setAuditData(await res.json());
-      } catch (err: any) {
-        setError(err.message ?? 'Failed to load audit detail.');
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : 'Failed to load audit detail.');
       } finally {
         setLoading(false);
       }
@@ -173,7 +173,7 @@ export default function AuditDetailPage() {
     return (
       <div className="min-h-screen bg-light-bg dark:bg-dark-bg flex flex-col items-center justify-center p-6 text-light-text dark:text-dark-text">
         <Loader2 className="h-8 w-8 text-primary animate-spin mb-3" />
-        <span className="text-xs text-secondary">Loading audit deep-dive details…</span>
+        <span className="text-xs text-secondary">Loading audit deep-dive details...</span>
       </div>
     );
   }
@@ -188,7 +188,7 @@ export default function AuditDetailPage() {
           <p className="text-secondary text-sm">{error ?? 'Could not locate audit details'}</p>
           <button
             onClick={() => router.push('/')}
-            className="w-full bg-primary hover:bg-primary text-white font-medium py-2 rounded-xl transition text-sm"
+            className="w-full bg-primary hover:bg-primary-hover text-white font-medium py-2 rounded-xl transition text-sm"
           >
             Return Home
           </button>
@@ -212,11 +212,11 @@ export default function AuditDetailPage() {
     <div className="min-h-screen bg-light-bg dark:bg-dark-bg text-light-text dark:text-dark-text selection:bg-primary selection:text-white pb-16">
 
       {/* ── Header ─────────────────────────────────────────────────── */}
-      <header className="border-b border-primary/15 bg-light-bg dark:bg-dark-bg/80 backdrop-blur sticky top-0 z-50">
+      <header className="border-b border-border bg-light-bg/80 dark:bg-dark-bg/80 backdrop-blur sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <button
             onClick={() => router.push('/history')}
-            className="flex items-center space-x-2 text-xs font-semibold text-secondary hover:text-light-text dark:text-dark-text transition"
+            className="flex items-center space-x-2 text-xs font-semibold text-secondary hover:text-light-text dark:hover:text-dark-text transition"
           >
             <ArrowLeft className="h-4 w-4" />
             <span>Dashboard Logs</span>
@@ -232,7 +232,7 @@ export default function AuditDetailPage() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
         {/* URL Banner */}
-        <div className="mb-8 p-4 bg-light-surface dark:bg-dark-surface border border-primary/15 rounded-2xl flex flex-wrap items-center justify-between gap-3">
+        <div className="mb-8 p-4 bg-light-surface dark:bg-dark-surface border border-border rounded-2xl flex flex-wrap items-center justify-between gap-3">
           <div className="space-y-1">
             <span className="text-[10px] text-secondary font-mono block uppercase tracking-wider">Audited Target URL</span>
             <span className="text-sm font-semibold font-mono text-light-text dark:text-dark-text break-all">{url}</span>
@@ -245,7 +245,7 @@ export default function AuditDetailPage() {
           <div className="lg:col-span-5 space-y-6">
 
             {/* Score gauge */}
-            <div className="bg-light-surface dark:bg-dark-surface border border-primary/15 rounded-2xl p-6 relative overflow-hidden">
+            <div className="bg-light-surface dark:bg-dark-surface border border-border rounded-2xl p-6 relative overflow-hidden">
               <h2 className="text-xs font-bold tracking-wider text-secondary uppercase mb-4">Overall Score</h2>
               <div className="flex items-center space-x-6">
                 <div className={`text-5xl font-black rounded-2xl px-6 py-5 border ${getScoreColor(score)}`}>
@@ -262,17 +262,17 @@ export default function AuditDetailPage() {
             </div>
 
             {/* General metrics */}
-            <div className="bg-light-surface dark:bg-dark-surface border border-primary/15 rounded-2xl p-6 space-y-5">
-              <h2 className="text-xs font-bold tracking-wider text-secondary uppercase border-b border-primary/10 pb-3">
+            <div className="bg-light-surface dark:bg-dark-surface border border-border rounded-2xl p-6 space-y-5">
+              <h2 className="text-xs font-bold tracking-wider text-secondary uppercase border-b border-border pb-3">
                 Audit Metrics Output
               </h2>
 
               <div className="grid grid-cols-2 gap-4">
-                <div className="bg-light-bg dark:bg-dark-bg p-4 rounded-xl border border-primary/10">
+                <div className="bg-light-bg dark:bg-dark-bg p-4 rounded-xl border border-border">
                   <span className="text-[10px] text-secondary block mb-0.5">Word Count</span>
                   <span className="text-lg font-bold text-light-text dark:text-dark-text">{wordCount || '—'}</span>
                 </div>
-                <div className="bg-light-bg dark:bg-dark-bg p-4 rounded-xl border border-primary/10">
+                <div className="bg-light-bg dark:bg-dark-bg p-4 rounded-xl border border-border">
                   <span className="text-[10px] text-secondary block mb-0.5">CTA Count</span>
                   <span className="text-lg font-bold text-light-text dark:text-dark-text">{ctaCount || '—'}</span>
                 </div>
@@ -286,7 +286,7 @@ export default function AuditDetailPage() {
                   </span>
                   <span className="font-mono">{altPct}%</span>
                 </div>
-                <div className="h-2 w-full bg-light-bg dark:bg-dark-bg rounded-full overflow-hidden border border-primary/10">
+                <div className="h-2 w-full bg-light-bg dark:bg-dark-bg rounded-full overflow-hidden border border-border">
                   <div
                     className="h-full bg-primary rounded-full transition-all"
                     style={{ width: `${altPct}%` }}
@@ -302,7 +302,7 @@ export default function AuditDetailPage() {
                   </span>
                   <span className="font-mono">{linkRatio}x</span>
                 </div>
-                <div className="h-2 w-full bg-light-bg dark:bg-dark-bg rounded-full overflow-hidden border border-primary/10">
+                <div className="h-2 w-full bg-light-bg dark:bg-dark-bg rounded-full overflow-hidden border border-border">
                   <div
                     className="h-full bg-primary rounded-full transition-all"
                     style={{ width: `${Math.min(linkRatio * 10, 100)}%` }}
@@ -316,7 +316,7 @@ export default function AuditDetailPage() {
           <div className="lg:col-span-7 space-y-6">
 
             {/* Executive Summary */}
-            <div className="bg-light-surface dark:bg-dark-surface border border-primary/15 rounded-2xl p-6">
+            <div className="bg-light-surface dark:bg-dark-surface border border-border rounded-2xl p-6">
               <div className="flex items-center space-x-2 text-primary mb-4">
                 <ShieldCheck className="h-5 w-5" />
                 <h2 className="text-xs font-bold tracking-wider uppercase">Executive SEO Summary</h2>
@@ -332,8 +332,8 @@ export default function AuditDetailPage() {
                 Prioritized Actions
               </h2>
               {recs.map((rec, idx) => (
-                <div key={idx} className="bg-light-surface dark:bg-dark-surface border border-primary/15 rounded-2xl p-5 space-y-3">
-                  <div className="flex flex-wrap items-center justify-between gap-3 border-b border-primary/10 pb-2.5">
+                <div key={idx} className="bg-light-surface dark:bg-dark-surface border border-border rounded-2xl p-5 space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-2.5">
                     <div className="flex items-center space-x-2.5">
                       {getPriorityBadge(rec.priority)}
                       <h3 className="font-bold text-sm text-light-text dark:text-dark-text">{rec.title}</h3>
@@ -345,7 +345,7 @@ export default function AuditDetailPage() {
                   <div className="text-secondary text-xs leading-relaxed prose prose-sm max-w-none">
                     <ReactMarkdown>{rec.details}</ReactMarkdown>
                   </div>
-                  <div className="bg-light-bg dark:bg-dark-bg p-3 rounded-lg border border-primary/10 text-[11px] text-secondary">
+                  <div className="bg-light-bg dark:bg-dark-bg p-3 rounded-lg border border-border text-[11px] text-secondary">
                     <strong className="text-primary uppercase tracking-widest text-[9px] block mb-0.5">
                       Expected Outcome
                     </strong>
@@ -356,29 +356,29 @@ export default function AuditDetailPage() {
             </div>
 
             {/* AI Chat */}
-            <div className="bg-light-surface dark:bg-dark-surface border border-primary/15 rounded-3xl p-5 space-y-4">
-              <div className="flex items-center space-x-2 text-primary border-b border-primary/10 pb-3">
+            <div className="bg-light-surface dark:bg-dark-surface border border-border rounded-3xl p-5 space-y-4">
+              <div className="flex items-center space-x-2 text-primary border-b border-border pb-3">
                 <MessageSquare className="h-5 w-5" />
                 <div>
                   <h3 className="text-sm font-bold text-light-text dark:text-dark-text">AI Assistant</h3>
-                  <p className="text-[10px] text-secondary">Ask questions about this audit's findings</p>
+                  <p className="text-[10px] text-secondary">Ask questions about this audit&apos;s findings</p>
                 </div>
               </div>
 
               {/* Message thread */}
-              <div className="max-h-80 overflow-y-auto space-y-3 p-3 bg-light-bg dark:bg-dark-bg rounded-2xl border border-primary/10">
+              <div className="max-h-80 overflow-y-auto space-y-3 p-3 bg-light-bg dark:bg-dark-bg rounded-2xl border border-border">
                 {messages.length === 0 ? (
                   <div className="py-10 text-center space-y-2">
                     <MessageSquare className="h-6 w-6 text-secondary/40 mx-auto" />
                     <p className="text-secondary text-sm">Ask anything about this audit.</p>
-                    <p className="text-secondary/60 text-xs">e.g. "Why is my SEO score low?" or "What should I fix first?"</p>
+                    <p className="text-secondary/60 text-xs">e.g. &quot;Why is my SEO score low?&quot; or &quot;What should I fix first?&quot;</p>
                   </div>
                 ) : (
                   messages.map((msg, idx) => (
                     <div key={idx} className={`rounded-xl px-4 py-3 ${
                       msg.role === 'user'
                         ? 'bg-primary/10 border border-primary/25'
-                        : 'bg-light-surface dark:bg-dark-surface border border-primary/10'
+                        : 'bg-light-surface dark:bg-dark-surface border border-border'
                     }`}>
                       <p className={`text-[10px] font-semibold uppercase tracking-widest mb-2 ${
                         msg.role === 'user' ? 'text-primary' : 'text-secondary'
@@ -392,9 +392,9 @@ export default function AuditDetailPage() {
                   ))
                 )}
                 {chatLoading && (
-                  <div className="flex items-center gap-2 px-4 py-3 bg-light-surface dark:bg-dark-surface border border-primary/10 rounded-xl text-secondary text-sm">
+                  <div className="flex items-center gap-2 px-4 py-3 bg-light-surface dark:bg-dark-surface border border-border rounded-xl text-secondary text-sm">
                     <Loader2 className="h-4 w-4 animate-spin flex-shrink-0" />
-                    <span>Thinking…</span>
+                    <span>Thinking...</span>
                   </div>
                 )}
                 <div ref={chatEndRef} />
@@ -404,11 +404,11 @@ export default function AuditDetailPage() {
               <form onSubmit={handleSendMessage} className="flex items-center gap-2">
                 <input
                   type="text"
-                  placeholder="Ask a question about this audit…"
+                  placeholder="Ask a question about this audit..."
                   value={chatInput}
                   onChange={(e) => setChatInput(e.target.value)}
                   className="
-                    w-full bg-light-bg dark:bg-dark-bg border border-primary/20 rounded-xl
+                    w-full bg-light-bg dark:bg-dark-bg border border-border rounded-xl
                     px-4 py-3 text-sm text-light-text dark:text-dark-text
                     focus:outline-none focus:border-primary
                     placeholder:text-secondary/50
@@ -417,7 +417,7 @@ export default function AuditDetailPage() {
                 <button
                   type="submit"
                   disabled={chatLoading}
-                  className="bg-primary hover:bg-primary p-3 rounded-xl text-white transition flex-shrink-0 disabled:opacity-50"
+                  className="bg-primary hover:bg-primary-hover p-3 rounded-xl text-white transition flex-shrink-0 disabled:opacity-50"
                 >
                   <Send className="h-4 w-4" />
                 </button>
@@ -428,8 +428,8 @@ export default function AuditDetailPage() {
       </main>
 
       {/* ── Footer ─────────────────────────────────────────────────── */}
-      <footer className="border-t border-primary/15 bg-light-surface dark:bg-dark-surface/70 py-6 text-center text-xs text-secondary">
-        <p>© 2026 EIGHT25MEDIA · WebCrawler — Professional SEO &amp; Conversion Audit Platform</p>
+      <footer className="border-t border-border bg-light-surface/70 dark:bg-dark-surface/70 py-6 text-center text-xs text-secondary">
+        <p>&copy; 2026 EIGHT25MEDIA &middot; WebCrawler — Professional SEO &amp; Conversion Audit Platform</p>
       </footer>
     </div>
   );

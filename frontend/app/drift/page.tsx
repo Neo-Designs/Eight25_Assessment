@@ -33,7 +33,7 @@ type FetchState = 'idle' | 'loading' | 'error' | 'success';
 function DriftVariance({ primary, competitor }: { primary: number; competitor: number }) {
   const delta = primary - competitor;
   const sign = delta > 0 ? '+' : '';
-  const color = delta > 0 ? 'text-emerald-400' : delta < 0 ? 'text-rose-400' : 'text-slate-400';
+  const color = delta > 0 ? 'text-emerald-400' : delta < 0 ? 'text-rose-400' : 'text-secondary';
   return <span className={`font-bold font-mono ${color}`}>{sign}{delta}</span>;
 }
 
@@ -49,10 +49,10 @@ function MetricRow({
   variance: React.ReactNode;
 }) {
   return (
-    <tr className="hover:bg-slate-900/40 transition-colors">
-      <td className="p-4 font-semibold text-slate-200 text-sm">{label}</td>
-      <td className="p-4 text-slate-300 font-mono text-sm">{primary}</td>
-      <td className="p-4 text-slate-300 font-mono text-sm">{competitor}</td>
+    <tr className="hover:bg-light-bg/50 dark:hover:bg-dark-bg/50 transition-colors">
+      <td className="p-4 font-semibold text-light-text dark:text-dark-text text-sm">{label}</td>
+      <td className="p-4 text-secondary font-mono text-sm">{primary}</td>
+      <td className="p-4 text-secondary font-mono text-sm">{competitor}</td>
       <td className="p-4 text-center font-mono text-sm">{variance}</td>
     </tr>
   );
@@ -92,8 +92,8 @@ export default function DriftPage() {
       const data = await res.json();
       setDriftResult({ primary: data.primary_data, competitor: data.competitor_data });
       setDriftState('success');
-    } catch (err: any) {
-      setDriftError(err.message ?? 'Drift comparison failed — check both URLs and the backend.');
+    } catch (err: unknown) {
+      setDriftError(err instanceof Error ? err.message : 'Drift comparison failed — check both URLs and the backend.');
       setDriftState('error');
     }
   };
@@ -103,17 +103,17 @@ export default function DriftPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 selection:bg-indigo-500 selection:text-white pb-16">
+    <div className="min-h-screen bg-light-bg dark:bg-dark-bg text-light-text dark:text-dark-text selection:bg-primary selection:text-white pb-16">
 
       {/* ── Header ──────────────────────────────────────────── */}
-      <header className="border-b border-slate-900 bg-slate-950/80 backdrop-blur sticky top-0 z-40">
+      <header className="border-b border-border bg-light-bg/80 dark:bg-dark-bg/80 backdrop-blur sticky top-0 z-40">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center gap-3">
-          <div className="h-8 w-8 rounded-lg bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center">
-            <GitCompare className="h-4 w-4 text-indigo-400" />
+          <div className="h-8 w-8 rounded-lg bg-primary/10 border border-primary/25 flex items-center justify-center">
+            <GitCompare className="h-4 w-4 text-primary" />
           </div>
           <div>
-            <span className="font-bold text-sm text-slate-200 block leading-none">Drift Comparison</span>
-            <span className="text-[10px] text-slate-500 font-mono">Scrape two pages and compare metrics side-by-side</span>
+            <span className="font-bold text-sm text-light-text dark:text-dark-text block leading-none">Drift Comparison</span>
+            <span className="text-[10px] text-secondary font-mono">Scrape two pages and compare metrics side-by-side</span>
           </div>
         </div>
       </header>
@@ -121,47 +121,47 @@ export default function DriftPage() {
       <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-10">
 
         {/* ── Input form ────────────────────────────────────── */}
-        <section className="bg-slate-900/50 border border-slate-800 rounded-3xl p-8 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-72 h-72 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
+        <section className="bg-light-surface dark:bg-dark-surface border border-border rounded-3xl p-8 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-72 h-72 bg-primary/5 rounded-full blur-3xl pointer-events-none" />
 
           <div className="flex items-center gap-3 mb-6">
-            <div className="h-8 w-8 rounded-lg bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center">
-              <BarChart3 className="h-4 w-4 text-indigo-400" />
+            <div className="h-8 w-8 rounded-lg bg-primary/10 border border-primary/25 flex items-center justify-center">
+              <BarChart3 className="h-4 w-4 text-primary" />
             </div>
             <div>
-              <h1 className="text-base font-bold text-white">Competitive SEO Drift Analysis</h1>
-              <p className="text-xs text-slate-500 mt-0.5">Enter two URLs to compare all key SEO metrics side-by-side</p>
+              <h1 className="text-base font-bold text-light-text dark:text-dark-text">Competitive SEO Drift Analysis</h1>
+              <p className="text-xs text-secondary mt-0.5">Enter two URLs to compare all key SEO metrics side-by-side</p>
             </div>
           </div>
 
           <form onSubmit={handleDriftCompare} className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
             <div className="md:col-span-5 space-y-2">
-              <label className="text-xs font-semibold text-slate-400 block">Your Website</label>
+              <label className="text-xs font-semibold text-secondary block">Your Website</label>
               <input
                 type="url"
                 required
                 placeholder="https://mywebsite.com"
                 value={primaryUrl}
                 onChange={(e) => setPrimaryUrl(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-200 focus:outline-none focus:border-indigo-500 font-mono placeholder:text-slate-700 transition"
+                className="w-full bg-light-bg dark:bg-dark-bg border border-border rounded-xl px-4 py-3 text-sm text-light-text dark:text-dark-text focus:outline-none focus:border-primary font-mono placeholder:text-secondary/40 transition"
               />
             </div>
             <div className="md:col-span-5 space-y-2">
-              <label className="text-xs font-semibold text-slate-400 block">Competitor Website</label>
+              <label className="text-xs font-semibold text-secondary block">Competitor Website</label>
               <input
                 type="url"
                 required
                 placeholder="https://competitor.com"
                 value={competitorUrl}
                 onChange={(e) => setCompetitorUrl(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-200 focus:outline-none focus:border-indigo-500 font-mono placeholder:text-slate-700 transition"
+                className="w-full bg-light-bg dark:bg-dark-bg border border-border rounded-xl px-4 py-3 text-sm text-light-text dark:text-dark-text focus:outline-none focus:border-primary font-mono placeholder:text-secondary/40 transition"
               />
             </div>
             <div className="md:col-span-2">
               <button
                 type="submit"
                 disabled={driftState === 'loading'}
-                className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm py-3 rounded-xl transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-indigo-600/20"
+                className="w-full bg-primary hover:bg-primary-hover text-white font-semibold text-sm py-3 rounded-xl transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-primary/20"
               >
                 {driftState === 'loading' ? (
                   <><Loader2 className="h-4 w-4 animate-spin" /><span>Running…</span></>
@@ -186,8 +186,8 @@ export default function DriftPage() {
 
         {/* ── Loading state ─────────────────────────────────── */}
         {driftState === 'loading' && (
-          <div className="flex flex-col items-center justify-center py-20 text-slate-500 gap-3">
-            <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
+          <div className="flex flex-col items-center justify-center py-20 text-secondary gap-3">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
             <p className="text-sm">Scraping both pages simultaneously…</p>
           </div>
         )}
@@ -196,33 +196,33 @@ export default function DriftPage() {
         {driftResult && (
           <section className="space-y-4">
             <div className="flex items-center gap-3">
-              <h2 className="text-sm font-bold text-white">Comparison Results</h2>
+              <h2 className="text-sm font-bold text-light-text dark:text-dark-text">Comparison Results</h2>
               <div className="flex items-center gap-2 text-xs">
-                <span className="px-2 py-0.5 rounded-md bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 font-mono">
+                <span className="px-2 py-0.5 rounded-md bg-primary/10 border border-primary/20 text-primary font-mono">
                   {hostname(driftResult.primary.url)}
                 </span>
-                <span className="text-slate-600">vs</span>
-                <span className="px-2 py-0.5 rounded-md bg-purple-500/10 border border-purple-500/20 text-purple-400 font-mono">
+                <span className="text-secondary">vs</span>
+                <span className="px-2 py-0.5 rounded-md bg-accent/10 border border-accent/20 text-accent font-mono">
                   {hostname(driftResult.competitor.url)}
                 </span>
               </div>
             </div>
 
-            <div className="border border-slate-800 rounded-2xl overflow-hidden bg-slate-950">
+            <div className="border border-border rounded-2xl overflow-hidden bg-light-surface dark:bg-dark-surface">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-slate-900 border-b border-slate-800 text-slate-400">
+                  <tr className="bg-light-bg dark:bg-dark-bg border-b border-border text-secondary">
                     <th className="p-4 font-semibold text-xs uppercase tracking-wider">Metric</th>
-                    <th className="p-4 font-semibold text-xs text-indigo-400 truncate">
+                    <th className="p-4 font-semibold text-xs text-primary truncate">
                       {hostname(driftResult.primary.url)}
                     </th>
-                    <th className="p-4 font-semibold text-xs text-purple-400 truncate">
+                    <th className="p-4 font-semibold text-xs text-accent truncate">
                       {hostname(driftResult.competitor.url)}
                     </th>
                     <th className="p-4 font-semibold text-xs text-center">Variance</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-900">
+                <tbody className="divide-y divide-border">
                   <MetricRow
                     label="Word Count"
                     primary={driftResult.primary.word_count.toLocaleString()}
@@ -248,7 +248,7 @@ export default function DriftPage() {
                       </span>
                     }
                     variance={
-                      <span className="text-slate-400 font-semibold">
+                      <span className="text-secondary font-semibold">
                         {driftResult.primary.headings.h1_count === driftResult.competitor.headings.h1_count
                           ? 'Aligned'
                           : driftResult.primary.headings.h1_count === 1
@@ -276,7 +276,7 @@ export default function DriftPage() {
                     primary={`${driftResult.primary.links.ratio_internal_external}x`}
                     competitor={`${driftResult.competitor.links.ratio_internal_external}x`}
                     variance={
-                      <span className="text-slate-400 font-bold">
+                      <span className="text-secondary font-bold">
                         {(driftResult.primary.links.ratio_internal_external - driftResult.competitor.links.ratio_internal_external).toFixed(2)}
                       </span>
                     }
@@ -316,12 +316,12 @@ export default function DriftPage() {
                   detail: `${Math.abs(driftResult.primary.cta_count - driftResult.competitor.cta_count)} CTA difference`,
                 },
               ].map((insight) => (
-                <div key={insight.label} className="bg-slate-900/40 border border-slate-800 rounded-2xl p-4 space-y-1">
-                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{insight.label}</p>
-                  <p className={`text-sm font-bold ${insight.winner === 'primary' ? 'text-indigo-400' : 'text-purple-400'}`}>
+                <div key={insight.label} className="bg-light-surface dark:bg-dark-surface border border-border rounded-2xl p-4 space-y-1">
+                  <p className="text-xs font-semibold text-secondary uppercase tracking-wider">{insight.label}</p>
+                  <p className={`text-sm font-bold ${insight.winner === 'primary' ? 'text-primary' : 'text-accent'}`}>
                     {insight.winner === 'primary' ? `✓ ${hostname(driftResult.primary.url)}` : `✓ ${hostname(driftResult.competitor.url)}`}
                   </p>
-                  <p className="text-xs text-slate-500">{insight.detail}</p>
+                  <p className="text-xs text-secondary">{insight.detail}</p>
                 </div>
               ))}
             </div>
@@ -331,20 +331,19 @@ export default function DriftPage() {
         {/* ── Empty idle state ──────────────────────────────── */}
         {driftState === 'idle' && (
           <div className="flex flex-col items-center justify-center py-20 text-center gap-4">
-            <div className="h-16 w-16 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center">
-              <GitCompare className="h-7 w-7 text-slate-600" />
+            <div className="h-16 w-16 rounded-2xl bg-light-surface dark:bg-dark-surface border border-border flex items-center justify-center">
+              <GitCompare className="h-7 w-7 text-secondary" />
             </div>
-            <p className="text-sm font-semibold text-slate-400">No comparison run yet</p>
-            <p className="text-xs text-slate-600 max-w-xs">Enter two URLs above and click Compare to see a detailed side-by-side breakdown of page metrics.</p>
+            <p className="text-sm font-semibold text-secondary">No comparison run yet</p>
+            <p className="text-xs text-secondary/60 max-w-xs">Enter two URLs above and click Compare to see a detailed side-by-side breakdown of page metrics.</p>
           </div>
         )}
 
       </main>
 
-      <footer className="border-t border-slate-900 bg-slate-950 py-6 text-center text-xs text-slate-700">
-        © 2026 EIGHT25MEDIA Enterprise Website Audit Tool
+      <footer className="border-t border-border bg-light-surface/70 dark:bg-dark-surface/70 py-6 text-center text-xs text-secondary">
+        &copy; 2026 EIGHT25MEDIA &middot; WebCrawler — Professional SEO &amp; Conversion Audit Platform
       </footer>
     </div>
   );
 }
-

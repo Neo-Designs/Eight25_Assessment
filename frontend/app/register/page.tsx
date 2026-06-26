@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { ShieldCheck, Loader2 } from 'lucide-react';
 import Link from 'next/link';
@@ -11,7 +10,6 @@ export default function RegisterPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
   const { login } = useAuth();
 
   const handleRegister = async (e: React.FormEvent) => {
@@ -42,8 +40,8 @@ export default function RegisterPage() {
       
       const userData = await userRes.json();
       login(access_token, userData);
-    } catch (err: any) {
-      setError(err.message || 'An error occurred during registration');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'An error occurred during registration');
     } finally {
       setLoading(false);
     }
@@ -51,9 +49,11 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen bg-light-bg dark:bg-dark-bg flex flex-col items-center justify-center p-6 text-light-text dark:text-dark-text">
-      <div className="max-w-md w-full bg-light-surface dark:bg-dark-surface border border-primary/20 p-8 rounded-3xl shadow-xl space-y-6">
+      <div className="max-w-md w-full bg-light-surface dark:bg-dark-surface border border-border p-8 rounded-3xl shadow-xl shadow-primary/5 space-y-6">
         <div className="text-center space-y-2">
-          <ShieldCheck className="h-12 w-12 text-primary mx-auto" />
+          <div className="h-14 w-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto">
+            <ShieldCheck className="h-7 w-7 text-primary" />
+          </div>
           <h1 className="text-2xl font-bold text-light-text dark:text-dark-text">Create Account</h1>
           <p className="text-sm text-secondary">Join the WebCrawler Audit Platform</p>
         </div>
@@ -74,7 +74,7 @@ export default function RegisterPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full bg-light-bg dark:bg-dark-bg border border-secondary/30 rounded-xl px-4 py-3 text-sm text-light-text dark:text-dark-text focus:outline-none focus:border-primary placeholder:text-secondary/50"
+              className="w-full bg-light-bg dark:bg-dark-bg border border-border rounded-xl px-4 py-3 text-sm text-light-text dark:text-dark-text focus:outline-none focus:border-primary placeholder:text-secondary/50"
               placeholder="you@example.com"
             />
           </div>
@@ -87,7 +87,7 @@ export default function RegisterPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full bg-light-bg dark:bg-dark-bg border border-secondary/30 rounded-xl px-4 py-3 text-sm text-light-text dark:text-dark-text focus:outline-none focus:border-primary placeholder:text-secondary/50"
+              className="w-full bg-light-bg dark:bg-dark-bg border border-border rounded-xl px-4 py-3 text-sm text-light-text dark:text-dark-text focus:outline-none focus:border-primary placeholder:text-secondary/50"
               placeholder="••••••••"
               minLength={6}
             />
@@ -95,7 +95,7 @@ export default function RegisterPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-primary hover:bg-primary/90 text-white font-medium py-3 rounded-xl transition flex items-center justify-center"
+            className="w-full bg-primary hover:bg-primary-hover text-white font-medium py-3 rounded-xl transition flex items-center justify-center shadow-lg shadow-primary/20"
           >
             {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : 'Create Account'}
           </button>

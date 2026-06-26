@@ -11,15 +11,18 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        primary: '#1F4959',
-        secondary: '#5C7C89',
-        accent: '#A1C1C1',
-        light: { bg: '#E6EFEF', surface: '#c3d7eb', text: '#121e26' },
-        dark: { bg: '#112a2e', surface: '#162629', text: '#b2c2c2' },
+        primary: '#6366F1',
+        'primary-hover': '#4F46E5',
+        secondary: '#64748B',
+        accent: '#8B5CF6',
+        light: { bg: '#F8FAFC', surface: '#FFFFFF', text: '#0F172A' },
+        dark: { bg: '#0F172A', surface: '#1E293B', text: '#E2E8F0' },
         // Aliases for seamless layout switching
         background: 'var(--bg-color)',
         surface: 'var(--surface-color)',
-        foreground: 'var(--text-color)'
+        foreground: 'var(--text-color)',
+        muted: 'var(--muted-color)',
+        border: 'var(--border-color)',
       },
       fontFamily: {
         sans: ["var(--font-body)", "system-ui", "sans-serif"],
@@ -31,4 +34,3 @@ const config: Config = {
 };
 
 export default config;
-

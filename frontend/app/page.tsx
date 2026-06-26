@@ -10,8 +10,6 @@ import {
 
 /* ─────────────────────────────────────────────────────────────
    Spiderweb SVG — client-only to avoid SSR/hydration mismatch.
-   All geometry calculations happen AFTER mount via isMounted.
-   The server receives null, the client renders the full SVG.
    ───────────────────────────────────────────────────────────── */
 function SpiderwebBackground() {
   const [isMounted, setIsMounted] = useState(false);
@@ -20,11 +18,8 @@ function SpiderwebBackground() {
     setIsMounted(true);
   }, []);
 
-  // Return a zero-size placeholder on the server and first render tick.
-  // This guarantees the HTML from the server matches the initial client render.
   if (!isMounted) return null;
 
-  // ── All geometry calculated client-side only ──────────────────
   const cx = 600;
   const cy = 500;
   const rings = [80, 160, 240, 320, 400, 480];
@@ -46,7 +41,6 @@ function SpiderwebBackground() {
     return <polygon key={`ring-${ri}`} points={points} fill="none" />;
   });
 
-  // Static cross-threads — deterministic, no Math.random()
   const threads = [
     `M${cx - 200},${cy + 50} Q${cx},${cy - 80} ${cx + 180},${cy + 70}`,
     `M${cx - 160},${cy - 120} Q${cx + 60},${cy} ${cx + 200},${cy - 100}`,
@@ -82,9 +76,9 @@ function SpiderwebBackground() {
 function FeatureCard({ icon, title, desc }: { icon: React.ReactNode; title: string; desc: string }) {
   return (
     <div className="
-      bg-light-surface dark:bg-dark-surface/80 backdrop-blur-sm p-5 rounded-2xl
-      border border-primary/15 text-center space-y-2
-      hover:border-primary/40 transition-colors duration-200
+      bg-light-surface dark:bg-dark-surface backdrop-blur-sm p-5 rounded-2xl
+      border border-border text-center space-y-2
+      hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5 transition-all duration-200
     ">
       <div className="flex justify-center text-primary">{icon}</div>
       <h3 className="font-bold text-sm text-light-text dark:text-dark-text">{title}</h3>
@@ -130,14 +124,14 @@ export default function LandingPage() {
 
       {/* ── Subtle radial glow blobs (theme-aware) ───────── */}
       <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-primary/5 rounded-full blur-3xl -translate-y-1/2 pointer-events-none" />
-      <div className="absolute bottom-0 right-1/4 w-[600px] h-[600px] bg-secondary/5 rounded-full blur-3xl translate-y-1/2 pointer-events-none" />
+      <div className="absolute bottom-0 right-1/4 w-[600px] h-[600px] bg-accent/5 rounded-full blur-3xl translate-y-1/2 pointer-events-none" />
 
       {/* ── Header ───────────────────────────────────────── */}
-      <header className="border-b border-primary/15 bg-light-bg dark:bg-dark-bg/80 backdrop-blur sticky top-0 z-50">
+      <header className="border-b border-border bg-light-bg/80 dark:bg-dark-bg/80 backdrop-blur sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           {/* Brand */}
           <div className="flex items-center space-x-3">
-            <div className="bg-primary p-2 rounded-lg text-white shadow-md">
+            <div className="bg-primary p-2 rounded-lg text-white shadow-md shadow-primary/20">
               <Sparkles className="h-5 w-5" />
             </div>
             <div>
@@ -152,14 +146,14 @@ export default function LandingPage() {
           <div className="flex items-center space-x-2">
             <button
               onClick={() => router.push('/history')}
-              className="flex items-center space-x-2 text-xs font-semibold text-secondary hover:text-light-text dark:text-dark-text bg-light-surface dark:bg-dark-surface border border-primary/20 hover:border-primary/40 px-3 py-2 rounded-xl transition"
+              className="flex items-center space-x-2 text-xs font-semibold text-secondary hover:text-light-text dark:hover:text-dark-text bg-light-surface dark:bg-dark-surface border border-border hover:border-primary/40 px-3 py-2 rounded-xl transition"
             >
               <Clock className="h-3.5 w-3.5" />
               <span>Audit History</span>
             </button>
             <button
               onClick={() => router.push('/drift')}
-              className="flex items-center space-x-2 text-xs font-semibold text-secondary hover:text-light-text dark:text-dark-text bg-light-surface dark:bg-dark-surface border border-primary/20 hover:border-primary/40 px-3 py-2 rounded-xl transition"
+              className="flex items-center space-x-2 text-xs font-semibold text-secondary hover:text-light-text dark:hover:text-dark-text bg-light-surface dark:bg-dark-surface border border-border hover:border-primary/40 px-3 py-2 rounded-xl transition"
             >
               <GitCompare className="h-3.5 w-3.5" />
               <span>Drift Compare</span>
@@ -208,15 +202,15 @@ export default function LandingPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.18 }}
-          className="w-full max-w-2xl bg-light-surface dark:bg-dark-surface/90 backdrop-blur-xl border border-primary/20 p-6 rounded-3xl shadow-2xl relative"
+          className="w-full max-w-2xl bg-light-surface dark:bg-dark-surface backdrop-blur-xl border border-border p-6 rounded-3xl shadow-2xl shadow-primary/5 relative"
         >
           <form onSubmit={handleAuditSubmit} className="space-y-5">
 
             {/* URL Input row */}
             <div className="relative group">
               {/* Glow ring on focus */}
-              <div className="absolute -inset-0.5 rounded-2xl bg-gradient-to-r from-primary to-secondary blur opacity-0 group-focus-within:opacity-30 transition-opacity duration-300" />
-              <div className="relative flex items-center bg-light-bg dark:bg-dark-bg border border-primary/20 rounded-2xl p-2.5 pl-4">
+              <div className="absolute -inset-0.5 rounded-2xl bg-gradient-to-r from-primary to-accent blur opacity-0 group-focus-within:opacity-20 transition-opacity duration-300" />
+              <div className="relative flex items-center bg-light-bg dark:bg-dark-bg border border-border rounded-2xl p-2.5 pl-4">
                 <Search className="h-5 w-5 text-secondary flex-shrink-0" />
                 <input
                   id="audit-url-input"
@@ -234,10 +228,10 @@ export default function LandingPage() {
                 <button
                   type="submit"
                   className="
-                    bg-primary hover:bg-primary text-white
+                    bg-primary hover:bg-primary-hover text-white
                     font-medium text-sm px-6 py-3 rounded-xl
                     transition-colors duration-200 flex items-center space-x-2 flex-shrink-0
-                    shadow-lg shadow-primary/20
+                    shadow-lg shadow-primary/25
                   "
                 >
                   <span>Analyze</span>
@@ -263,7 +257,7 @@ export default function LandingPage() {
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 'auto' }}
                     exit={{ opacity: 0, height: 0 }}
-                    className="overflow-hidden pt-4 mt-4 border-t border-primary/15"
+                    className="overflow-hidden pt-4 mt-4 border-t border-border"
                   >
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5 text-xs">
                       {/* SEO */}
@@ -344,10 +338,9 @@ export default function LandingPage() {
       </main>
 
       {/* ── Footer ───────────────────────────────────────── */}
-      <footer className="border-t border-primary/15 bg-light-surface dark:bg-dark-surface/70 py-6 text-center text-xs text-secondary">
-        <p>© 2026 EIGHT25MEDIA · WebCrawler — Professional SEO & Conversion Audit Platform</p>
+      <footer className="border-t border-border bg-light-surface/70 dark:bg-dark-surface/70 py-6 text-center text-xs text-secondary">
+        <p>&copy; 2026 EIGHT25MEDIA &middot; WebCrawler — Professional SEO & Conversion Audit Platform</p>
       </footer>
     </div>
   );
 }
-
