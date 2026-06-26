@@ -1,3 +1,4 @@
+import logging
 import bcrypt
 import os
 from datetime import datetime, timedelta
@@ -10,6 +11,8 @@ from pydantic import BaseModel
 
 from app.database import get_db
 from app.models.db_models import User
+
+logger = logging.getLogger("audit_tool")
 
 # Authentication constants
 SECRET_KEY = os.environ.get("JWT_SECRET_KEY", "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7")
@@ -78,7 +81,12 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
     hashed_password = get_password_hash(user.password)
     new_user = User(email=user.email, hashed_password=hashed_password)
     db.add(new_user)
-    db.commit()
+    try:
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Database error during registration for {user.email}: {e}")
+        raise HTTPException(status_code=500, detail="Registration failed due to a server error.")
     db.refresh(new_user)
     access_token = create_access_token(data={"sub": new_user.email}, expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
     return {"access_token": access_token, "token_type": "bearer"}

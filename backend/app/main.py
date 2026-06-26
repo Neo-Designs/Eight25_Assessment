@@ -216,10 +216,21 @@ async def audit_results(audit_id: int, db: Session = Depends(get_db)):
         try:
             audit_dict = json.loads(log_entry.audit_findings)
             audit_output_out = AIAuditOutput(**audit_dict)
+        except Exception as e:
+            logger.error(f"[audit/results] Corrupt audit_findings JSON for #{audit_id}: {e}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Stored audit data for #{audit_id} is corrupt and could not be loaded."
+            )
+        try:
             scraped_dict = json.loads(log_entry.scraped_data_snapshot)
             scraped_data_out = ScrapedPageData(**scraped_dict)
         except Exception as e:
-            logger.warning(f"[audit/results] Could not parse stored response for #{audit_id}: {e}")
+            logger.error(f"[audit/results] Corrupt scraped_data JSON for #{audit_id}: {e}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Stored scraped data for #{audit_id} is corrupt and could not be loaded."
+            )
 
     return AuditResultsResponse(
         log_id=log_entry.id,
@@ -280,7 +291,8 @@ async def chat_reasoning(request: ChatRequest, db: Session = Depends(get_db)):
         try:
             audit_output_dict = json.loads(log_entry.audit_findings)
             scraped_data_dict = json.loads(log_entry.scraped_data_snapshot)
-        except Exception:
+        except Exception as e:
+            logger.warning(f"[chat] Could not parse stored JSON for log #{request.log_id}, using raw fallback: {e}")
             audit_output_dict = {"raw_content": log_entry.audit_findings}
             scraped_data_dict = {"url": log_entry.url}
 

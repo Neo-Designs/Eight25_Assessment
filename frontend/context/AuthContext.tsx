@@ -52,10 +52,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const data = await res.json();
         setUser(data);
       } else {
+        console.warn(`Auth check failed with status ${res.status}`);
         logout();
       }
     } catch (error) {
-      logout();
+      if (error instanceof TypeError) {
+        // Network error — backend may be down; keep token so we can retry
+        console.error('Network error reaching auth endpoint:', error.message);
+      } else {
+        console.error('Unexpected error during auth check:', error);
+        logout();
+      }
     } finally {
       setIsLoading(false);
     }
