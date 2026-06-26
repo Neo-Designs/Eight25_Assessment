@@ -10,6 +10,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Set a fake API key so AIEngine doesn't crash on import
 os.environ.setdefault("GEMINI_API_KEY", "fake-key-for-testing")
+# Set a fake JWT secret so auth module doesn't raise on import
+os.environ.setdefault("JWT_SECRET_KEY", "test-secret-key-do-not-use-in-production")
 
 from app.models.db_models import Base, User, ScanHistory
 

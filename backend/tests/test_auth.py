@@ -1,7 +1,7 @@
 """Unit tests for app/auth.py - Authentication module."""
 import pytest
 from datetime import timedelta
-from jose import jwt
+import jwt
 
 from app.auth import (
     get_password_hash,
@@ -135,25 +135,33 @@ class TestAuthRoutes:
     def test_register_duplicate_email(self, client):
         client.post("/api/auth/register", json={
             "email": "dup@example.com",
-            "password": "password123"
+            "password": "password1234"
         })
         response = client.post("/api/auth/register", json={
             "email": "dup@example.com",
-            "password": "otherpass"
+            "password": "otherpass123"
         })
         assert response.status_code == 400
         assert "already registered" in response.json()["detail"]
+
+    def test_register_short_password(self, client):
+        response = client.post("/api/auth/register", json={
+            "email": "short@example.com",
+            "password": "short"
+        })
+        assert response.status_code == 400
+        assert "at least 8 characters" in response.json()["detail"]
 
     def test_login_success(self, client):
         # Register first
         client.post("/api/auth/register", json={
             "email": "login@example.com",
-            "password": "mypassword"
+            "password": "mypassword123"
         })
         # Login
         response = client.post("/api/auth/login", json={
             "email": "login@example.com",
-            "password": "mypassword"
+            "password": "mypassword123"
         })
         assert response.status_code == 200
         data = response.json()
@@ -162,25 +170,25 @@ class TestAuthRoutes:
     def test_login_wrong_password(self, client):
         client.post("/api/auth/register", json={
             "email": "user@example.com",
-            "password": "correctpassword"
+            "password": "correctpassword1"
         })
         response = client.post("/api/auth/login", json={
             "email": "user@example.com",
-            "password": "wrongpassword"
+            "password": "wrongpassword1"
         })
         assert response.status_code == 401
 
     def test_login_nonexistent_user(self, client):
         response = client.post("/api/auth/login", json={
             "email": "nonexistent@example.com",
-            "password": "anypassword"
+            "password": "anypassword1"
         })
         assert response.status_code == 401
 
     def test_me_endpoint_with_valid_token(self, client):
         reg_response = client.post("/api/auth/register", json={
             "email": "me@example.com",
-            "password": "mypassword"
+            "password": "mypassword123"
         })
         token = reg_response.json()["access_token"]
         response = client.get("/api/auth/me", headers={"Authorization": f"Bearer {token}"})

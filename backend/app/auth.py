@@ -5,14 +5,21 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
-from jose import JWTError, jwt
+import jwt
+from jwt.exceptions import InvalidTokenError
 from pydantic import BaseModel
 
 from app.database import get_db
 from app.models.db_models import User
 
 # Authentication constants
-SECRET_KEY = os.environ.get("JWT_SECRET_KEY", "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7")
+_secret = os.environ.get("JWT_SECRET_KEY", "")
+if not _secret:
+    raise RuntimeError(
+        "FATAL: JWT_SECRET_KEY environment variable is not set. "
+        "Generate one with: openssl rand -hex 32"
+    )
+SECRET_KEY = _secret
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 days
 
@@ -47,6 +54,10 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
+def _validate_password(password: str) -> None:
+    if len(password) < 8:
+        raise HTTPException(status_code=400, detail="Password must be at least 8 characters long.")
+
 async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -57,7 +68,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         email: str = payload.get("sub")
         if email is None: raise credentials_exception
-    except JWTError:
+    except InvalidTokenError:
         raise credentials_exception
     user = db.query(User).filter(User.email == email).first()
     if user is None: raise credentials_exception
@@ -73,6 +84,7 @@ async def get_current_user_optional(token: str = Depends(OAuth2PasswordBearer(to
 # --- Routes ---
 @router.post("/register", response_model=Token)
 def register(user: UserCreate, db: Session = Depends(get_db)):
+    _validate_password(user.password)
     if db.query(User).filter(User.email == user.email).first():
         raise HTTPException(status_code=400, detail="Email already registered")
     hashed_password = get_password_hash(user.password)
