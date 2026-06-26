@@ -230,203 +230,204 @@ export default function AuditDetailPage() {
         </div>
       </header>
 
-      {/* ── Main Body ──────────────────────────────────────────────── */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* ── Main Body: 4 distinct sections ───────────────────────────────────────── */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
 
         {/* URL Banner */}
-        <div className="mb-8 p-4 bg-light-surface dark:bg-dark-surface border border-border rounded-2xl flex flex-wrap items-center justify-between gap-3">
+        <div className="mb-2 p-4 bg-light-surface dark:bg-dark-surface border border-border rounded-2xl flex flex-wrap items-center justify-between gap-3">
           <div className="space-y-1">
             <span className="text-[10px] text-secondary font-mono block uppercase tracking-wider">Audited Target URL</span>
             <span className="text-sm font-semibold font-mono text-light-text dark:text-dark-text break-all">{url}</span>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        {/* 1) FACTUAL METRICS */}
+        <section className="bg-light-surface dark:bg-dark-surface border border-border rounded-2xl p-6">
+          <h2 className="text-sm font-bold tracking-wider text-secondary uppercase mb-4">Factual Metrics</h2>
 
-          {/* ── LEFT: Metrics ──────────────────────────────────────── */}
-          <div className="lg:col-span-5 space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Metrics list */}
+            <div className="lg:col-span-2 grid grid-cols-2 gap-4">
+              <div className="p-4 rounded-xl border border-border bg-light-bg dark:bg-dark-bg">
+                <div className="text-[10px] text-secondary mb-1">Total Word Count</div>
+                <div className="text-lg font-bold">{wordCount.toLocaleString() || '—'}</div>
+              </div>
 
-            {/* Score gauge */}
-            <div className="bg-light-surface dark:bg-dark-surface border border-border rounded-2xl p-6 relative overflow-hidden">
-              <h2 className="text-xs font-bold tracking-wider text-secondary uppercase mb-4">Overall Score</h2>
-              <div className="flex items-center space-x-6">
-                <div className={`text-5xl font-black rounded-2xl px-6 py-5 border ${getScoreColor(score)}`}>
-                  {score}
-                </div>
-                <div>
-                  <h3 className="font-bold text-sm text-light-text dark:text-dark-text">Strategic Optimization Rating</h3>
-                  <p className="text-xs text-secondary mt-1 leading-relaxed">
-                    Calculated dynamically by analyzing keyword heading hierarchy, image alt context,
-                    word count ratio, and CTA positioning indexes.
-                  </p>
+              <div className="p-4 rounded-xl border border-border bg-light-bg dark:bg-dark-bg">
+                <div className="text-[10px] text-secondary mb-1">Headings</div>
+                <div className="flex items-center gap-4">
+                  <div className="text-sm"><strong>H1:</strong> {auditData?.scraped_data?.headings?.h1_count ?? 0}</div>
+                  <div className="text-sm"><strong>H2:</strong> {auditData?.scraped_data?.headings?.h2_count ?? 0}</div>
+                  <div className="text-sm"><strong>H3:</strong> {auditData?.scraped_data?.headings?.h3_count ?? 0}</div>
                 </div>
               </div>
+
+              <div className="p-4 rounded-xl border border-border bg-light-bg dark:bg-dark-bg">
+                <div className="text-[10px] text-secondary mb-1">CTAs (buttons / primary action links)</div>
+                <div className="text-lg font-bold">{ctaCount || '—'}</div>
+              </div>
+
+              <div className="p-4 rounded-xl border border-border bg-light-bg dark:bg-dark-bg">
+                <div className="text-[10px] text-secondary mb-1">Links (internal / external)</div>
+                <div className="text-sm">
+                  <div><strong>Internal:</strong> {auditData?.scraped_data?.links?.internal_links ?? 0}</div>
+                  <div><strong>External:</strong> {auditData?.scraped_data?.links?.external_links ?? 0}</div>
+                  <div className="mt-1 text-xs text-secondary">Ratio: {auditData?.scraped_data?.links?.ratio_internal_external ?? 0}x</div>
+                </div>
+              </div>
+
+              <div className="p-4 rounded-xl border border-border bg-light-bg dark:bg-dark-bg">
+                <div className="text-[10px] text-secondary mb-1">Images</div>
+                <div className="text-sm">
+                  <div><strong>Total:</strong> {auditData?.scraped_data?.images?.total_images ?? 0}</div>
+                  <div><strong>With alt:</strong> {auditData?.scraped_data?.images?.images_with_alt ?? 0}</div>
+                  <div><strong>Without alt:</strong> {auditData?.scraped_data?.images?.images_without_alt ?? 0}</div>
+                  <div className="mt-1 text-xs text-secondary">Missing alt: {(100 - (auditData?.scraped_data?.images?.alt_text_coverage_pct ?? 100)).toFixed(1)}%</div>
+                </div>
+              </div>
+
             </div>
 
-            {/* General metrics */}
-            <div className="bg-light-surface dark:bg-dark-surface border border-border rounded-2xl p-6 space-y-5">
-              <h2 className="text-xs font-bold tracking-wider text-secondary uppercase border-b border-border pb-3">
-                Audit Metrics Output
-              </h2>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-light-bg dark:bg-dark-bg p-4 rounded-xl border border-border">
-                  <span className="text-[10px] text-secondary block mb-0.5">Word Count</span>
-                  <span className="text-lg font-bold text-light-text dark:text-dark-text">{wordCount || '—'}</span>
+            {/* Meta box */}
+            <div className="p-4 rounded-xl border border-border bg-light-bg dark:bg-dark-bg">
+              <div className="text-[10px] text-secondary mb-2 uppercase font-mono tracking-wider">Meta Title & Description</div>
+              <div className="space-y-3">
+                <div className="bg-light-surface/50 dark:bg-dark-surface/50 p-3 rounded-md border border-border">
+                  <div className="text-[10px] text-secondary uppercase">Title</div>
+                  <div className="text-sm font-semibold mt-1">{auditData?.scraped_data?.meta_title ?? '—'}</div>
                 </div>
-                <div className="bg-light-bg dark:bg-dark-bg p-4 rounded-xl border border-border">
-                  <span className="text-[10px] text-secondary block mb-0.5">CTA Count</span>
-                  <span className="text-lg font-bold text-light-text dark:text-dark-text">{ctaCount || '—'}</span>
-                </div>
-              </div>
-
-              {/* Alt coverage bar */}
-              <div>
-                <div className="flex justify-between text-xs text-secondary mb-2">
-                  <span className="flex items-center gap-1">
-                    <ImageIcon className="h-3.5 w-3.5" /> Image Alt Coverage
-                  </span>
-                  <span className="font-mono">{altPct}%</span>
-                </div>
-                <div className="h-2 w-full bg-light-bg dark:bg-dark-bg rounded-full overflow-hidden border border-border">
-                  <div
-                    className="h-full bg-primary rounded-full transition-all"
-                    style={{ width: `${altPct}%` }}
-                  />
-                </div>
-              </div>
-
-              {/* Link ratio bar */}
-              <div>
-                <div className="flex justify-between text-xs text-secondary mb-2">
-                  <span className="flex items-center gap-1">
-                    <ExternalLink className="h-3.5 w-3.5" /> Internal Links Ratio
-                  </span>
-                  <span className="font-mono">{linkRatio}x</span>
-                </div>
-                <div className="h-2 w-full bg-light-bg dark:bg-dark-bg rounded-full overflow-hidden border border-border">
-                  <div
-                    className="h-full bg-primary rounded-full transition-all"
-                    style={{ width: `${Math.min(linkRatio * 10, 100)}%` }}
-                  />
+                <div className="bg-light-surface/50 dark:bg-dark-surface/50 p-3 rounded-md border border-border">
+                  <div className="text-[10px] text-secondary uppercase">Description</div>
+                  <div className="text-sm mt-1 text-secondary leading-relaxed">{auditData?.scraped_data?.meta_description ?? '—'}</div>
                 </div>
               </div>
             </div>
           </div>
+        </section>
 
-          {/* ── RIGHT: Insights + Chat ──────────────────────────────── */}
-          <div className="lg:col-span-7 space-y-6">
+        {/* 2) AI INSIGHTS — grouped by category */}
+        <section className="bg-light-surface dark:bg-dark-surface border border-border rounded-2xl p-6">
+          <h2 className="text-sm font-bold tracking-wider text-secondary uppercase mb-4">AI Insights</h2>
 
-            {/* Executive Summary */}
-            <div className="bg-light-surface dark:bg-dark-surface border border-border rounded-2xl p-6">
-              <div className="flex items-center space-x-2 text-primary mb-4">
-                <ShieldCheck className="h-5 w-5" />
-                <h2 className="text-xs font-bold tracking-wider uppercase">Executive SEO Summary</h2>
-              </div>
-              <div className="text-secondary text-xs leading-relaxed prose prose-sm max-w-none">
-                <ReactMarkdown>{summary}</ReactMarkdown>
-              </div>
-            </div>
+          <div className="space-y-4">
+            {['SEO structure','Messaging clarity','CTA usage','Content depth','UX/structural concerns'].map((cat) => {
+              const items = (auditData?.audit_output?.findings || []).filter((f: any) => f.category === cat);
+              if (!items || items.length === 0) return null;
+              return (
+                <div key={cat} className="p-4 border border-border rounded-2xl bg-light-bg dark:bg-dark-bg">
+                  <div className="text-xs font-semibold text-secondary uppercase tracking-wider mb-2">{cat}</div>
+                  <ul className="text-sm text-secondary list-disc pl-5 space-y-2">
+                    {items.map((it: any, idx: number) => (
+                      <li key={idx}>
+                        <div className="font-semibold text-light-text dark:text-dark-text">{it.observation}</div>
+                        <div className="text-xs text-secondary mt-1">Impact: {it.impact}</div>
+                        <div className="text-xs text-secondary mt-1">Grounding: {it.grounding?.map((g: any) => `${g.metric_name}: ${g.metric_value}`).join('; ')}</div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              );
+            })}
+          </div>
+        </section>
 
-            {/* Recommendations */}
-            <div className="space-y-4">
-              <h2 className="text-sm font-bold tracking-wider text-secondary uppercase px-1">
-                Prioritized Actions
-              </h2>
-              {recs.map((rec, idx) => (
-                <div key={idx} className="bg-light-surface dark:bg-dark-surface border border-border rounded-2xl p-5 space-y-3">
-                  <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-2.5">
-                    <div className="flex items-center space-x-2.5">
+        {/* 3) RECOMMENDATIONS */}
+        <section className="bg-light-surface dark:bg-dark-surface border border-border rounded-2xl p-6">
+          <h2 className="text-sm font-bold tracking-wider text-secondary uppercase mb-4">Prioritized Recommendations</h2>
+
+          <div className="space-y-4">
+            {recs.slice(0, 5).map((rec, idx) => (
+              <div key={idx} className="bg-light-bg dark:bg-dark-bg p-4 rounded-lg border border-border">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <div className="flex items-center gap-3">
                       {getPriorityBadge(rec.priority)}
                       <h3 className="font-bold text-sm text-light-text dark:text-dark-text">{rec.title}</h3>
                     </div>
-                    <span className="text-[10px] text-primary font-mono">
-                      Conf: {rec.confidence_score?.toFixed(2) ?? '—'}
-                    </span>
-                  </div>
-                  <div className="text-secondary text-xs leading-relaxed prose prose-sm max-w-none">
-                    <ReactMarkdown>{rec.details}</ReactMarkdown>
-                  </div>
-                  <div className="bg-light-bg dark:bg-dark-bg p-3 rounded-lg border border-border text-[11px] text-secondary">
-                    <strong className="text-primary uppercase tracking-widest text-[9px] block mb-0.5">
-                      Expected Outcome
-                    </strong>
-                    {rec.expected_outcome}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* AI Chat */}
-            <div className="bg-light-surface dark:bg-dark-surface border border-border rounded-3xl p-5 space-y-4">
-              <div className="flex items-center space-x-2 text-primary border-b border-border pb-3">
-                <MessageSquare className="h-5 w-5" />
-                <div>
-                  <h3 className="text-sm font-bold text-light-text dark:text-dark-text">AI Assistant</h3>
-                  <p className="text-[10px] text-secondary">Ask questions about this audit&apos;s findings</p>
-                </div>
-              </div>
-
-              {/* Message thread */}
-              <div className="max-h-80 overflow-y-auto space-y-3 p-3 bg-light-bg dark:bg-dark-bg rounded-2xl border border-border">
-                {messages.length === 0 ? (
-                  <div className="py-10 text-center space-y-2">
-                    <MessageSquare className="h-6 w-6 text-secondary/40 mx-auto" />
-                    <p className="text-secondary text-sm">Ask anything about this audit.</p>
-                    <p className="text-secondary/60 text-xs">e.g. &quot;Why is my SEO score low?&quot; or &quot;What should I fix first?&quot;</p>
-                  </div>
-                ) : (
-                  messages.map((msg, idx) => (
-                    <div key={idx} className={`rounded-xl px-4 py-3 ${
-                      msg.role === 'user'
-                        ? 'bg-primary/10 border border-primary/25'
-                        : 'bg-light-surface dark:bg-dark-surface border border-border'
-                    }`}>
-                      <p className={`text-[10px] font-semibold uppercase tracking-widest mb-2 ${
-                        msg.role === 'user' ? 'text-primary' : 'text-secondary'
-                      }`}>
-                        {msg.role === 'user' ? 'You' : 'AI Strategist'}
-                      </p>
-                      <div className="text-sm text-light-text dark:text-dark-text leading-relaxed prose prose-sm max-w-none">
-                        <ReactMarkdown>{msg.content}</ReactMarkdown>
-                      </div>
+                    <div className="text-xs text-secondary mt-2 leading-relaxed prose prose-sm max-w-none">
+                      <ReactMarkdown>{rec.details}</ReactMarkdown>
                     </div>
-                  ))
-                )}
-                {chatLoading && (
-                  <div className="flex items-center gap-2 px-4 py-3 bg-light-surface dark:bg-dark-surface border border-border rounded-xl text-secondary text-sm">
-                    <Loader2 className="h-4 w-4 animate-spin flex-shrink-0" />
-                    <span>Thinking...</span>
                   </div>
-                )}
-                <div ref={chatEndRef} />
+                  <div className="text-xs text-secondary font-mono">Conf: {rec.confidence_score?.toFixed(2) ?? '—'}</div>
+                </div>
+                <div className="mt-3 bg-light-bg dark:bg-dark-bg p-3 rounded-md border border-border text-[11px] text-secondary">
+                  <strong className="text-primary uppercase tracking-widest text-[9px] block mb-0.5">Expected Outcome</strong>
+                  {rec.expected_outcome}
+                </div>
               </div>
+            ))}
+          </div>
+        </section>
 
-              {/* Chat input */}
-              <form onSubmit={handleSendMessage} className="flex items-center gap-2">
-                <input
-                  type="text"
-                  placeholder="Ask a question about this audit..."
-                  value={chatInput}
-                  onChange={(e) => setChatInput(e.target.value)}
-                  className="
-                    w-full bg-light-bg dark:bg-dark-bg border border-border rounded-xl
-                    px-4 py-3 text-sm text-light-text dark:text-dark-text
-                    focus:outline-none focus:border-primary
-                    placeholder:text-secondary/50
-                  "
-                />
-                <button
-                  type="submit"
-                  disabled={chatLoading}
-                  className="bg-primary hover:bg-primary-hover p-3 rounded-xl text-white transition flex-shrink-0 disabled:opacity-50"
-                >
-                  <Send className="h-4 w-4" />
-                </button>
-              </form>
+        {/* 4) AI CHAT */}
+        <section className="bg-light-surface dark:bg-dark-surface border border-border rounded-3xl p-5">
+          <div className="flex items-center space-x-2 text-primary border-b border-border pb-3 mb-4">
+            <MessageSquare className="h-5 w-5" />
+            <div>
+              <h3 className="text-sm font-bold text-light-text dark:text-dark-text">AI Assistant</h3>
+              <p className="text-[10px] text-secondary">Ask questions about this audit's findings</p>
             </div>
           </div>
-        </div>
+
+          {/* Message thread (existing) */}
+          <div className="max-h-80 overflow-y-auto space-y-3 p-3 bg-light-bg dark:bg-dark-bg rounded-2xl border border-border">
+            {messages.length === 0 ? (
+              <div className="py-10 text-center space-y-2">
+                <MessageSquare className="h-6 w-6 text-secondary/40 mx-auto" />
+                <p className="text-secondary text-sm">Ask anything about this audit.</p>
+                <p className="text-secondary/60 text-xs">e.g. "Why is my SEO score low?" or "What should I fix first?"</p>
+              </div>
+            ) : (
+              messages.map((msg, idx) => (
+                <div key={idx} className={`rounded-xl px-4 py-3 ${
+                  msg.role === 'user'
+                    ? 'bg-primary/10 border border-primary/25'
+                    : 'bg-light-surface dark:bg-dark-surface border border-border'
+                }`}>
+                  <p className={`text-[10px] font-semibold uppercase tracking-widest mb-2 ${
+                    msg.role === 'user' ? 'text-primary' : 'text-secondary'
+                  }`}>
+                    {msg.role === 'user' ? 'You' : 'AI Strategist'}
+                  </p>
+                  <div className="text-sm text-light-text dark:text-dark-text leading-relaxed prose prose-sm max-w-none">
+                    <ReactMarkdown>{msg.content}</ReactMarkdown>
+                  </div>
+                </div>
+              ))
+            }
+            {chatLoading && (
+              <div className="flex items-center gap-2 px-4 py-3 bg-light-surface dark:bg-dark-surface border border-border rounded-xl text-secondary text-sm">
+                <Loader2 className="h-4 w-4 animate-spin flex-shrink-0" />
+                <span>Thinking...</span>
+              </div>
+            )}
+            <div ref={chatEndRef} />
+          </div>
+
+          {/* Chat input (existing) */}
+          <form onSubmit={handleSendMessage} className="flex items-center gap-2 mt-4">
+            <input
+              type="text"
+              placeholder="Ask a question about this audit..."
+              value={chatInput}
+              onChange={(e) => setChatInput(e.target.value)}
+              className="
+                w-full bg-light-bg dark:bg-dark-bg border border-border rounded-xl
+                px-4 py-3 text-sm text-light-text dark:text-dark-text
+                focus:outline-none focus:border-primary
+                placeholder:text-secondary/50
+              "
+            />
+            <button
+              type="submit"
+              disabled={chatLoading}
+              className="bg-primary hover:bg-primary-hover p-3 rounded-xl text-white transition flex-shrink-0 disabled:opacity-50"
+            >
+              <Send className="h-4 w-4" />
+            </button>
+          </form>
+        </section>
+
       </main>
 
       {/* ── Footer ─────────────────────────────────────────────────── */}

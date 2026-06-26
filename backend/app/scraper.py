@@ -27,7 +27,7 @@ class PlaywrightScraper:
             
             # Navigate to the URL
             # Set longer timeout (30s) and wait until network is idle or load event
-            await page.goto(url, wait_until="load", timeout=30000)
+            await page.goto(url, wait_until="load", timeout=60000)
             
             # Extract meta title and description
             meta_title = await page.title()
