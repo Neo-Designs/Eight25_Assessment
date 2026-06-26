@@ -9,7 +9,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from typing import List, Dict, Any, Optional
 
-# Force ProactorEventLoop on Windows for compatibility
+# Force ProactorEventLoop on Windows
 if sys.platform == 'win32':
     asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
@@ -26,11 +26,11 @@ from app.models.db_models import ScanHistory, User
 from app.auth import router as auth_router, get_current_user_optional
 
 # ─────────────────────────────────────────────
-# 1. Initialize FastAPI & Middleware (Crucial Order)
+# 1. Initialize FastAPI
 # ─────────────────────────────────────────────
 app = FastAPI()
 
-# CORS must be the absolute first middleware added
+# 2. CORS & Preflight Handling (Must be first)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["https://eight25-assessment.vercel.app"],
@@ -38,26 +38,18 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-# ... your existing imports ...
 
-# 2. Add this "Catch-All" route to force handling of OPTIONS requests
 @app.options("/{rest_of_path:path}")
 async def preflight_handler(rest_of_path: str):
     return {"message": "Preflight OK"}
 
-# 3. Include your routers
-app.include_router(auth_router)
-# ─────────────────────────────────────────────
-# 2. Logging & Routers
-# ─────────────────────────────────────────────
+# 3. Routers & Logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("audit_tool")
 
 app.include_router(auth_router)
 
-# ─────────────────────────────────────────────
-# 3. Singletons & Startup
-# ─────────────────────────────────────────────
+# 4. Singletons & Startup
 scraper = PlaywrightScraper()
 analyzer = AnalyzerService()
 ai_engine = AIEngine()
@@ -67,9 +59,7 @@ def on_startup():
     logger.info("Initializing database...")
     init_db()
 
-# ─────────────────────────────────────────────
-# 4. Request / Response Models
-# ─────────────────────────────────────────────
+# 5. Request/Response Models
 class AuditStartRequest(BaseModel):
     url: str
     weights: Optional[Dict[str, float]] = None
@@ -87,13 +77,6 @@ class AuditResultsResponse(BaseModel):
     scraped_data: Optional[ScrapedPageData]
     audit_output: Optional[AIAuditOutput]
 
-class AuditLogsResponse(BaseModel):
-    log_id: int
-    url: str
-    timestamp: Optional[str]
-    system_prompt: str
-    user_prompt: str
-
 class HistoryItem(BaseModel):
     id: int
     timestamp: Optional[str]
@@ -102,9 +85,7 @@ class HistoryItem(BaseModel):
 
 _audit_cache: Dict[int, Dict[str, Any]] = {}
 
-# ─────────────────────────────────────────────
-# 5. Core Endpoints
-# ─────────────────────────────────────────────
+# 6. Core Endpoints
 def _require_valid_url(url: str) -> str:
     url = url.strip()
     if not url.startswith(("http://", "https://")):
@@ -141,7 +122,6 @@ async def audit_results(audit_id: int, db: Session = Depends(get_db)):
         return AuditResultsResponse(log_id=log_entry.id, url=log_entry.url, timestamp=log_entry.timestamp.isoformat(), 
                                     seo_score=log_entry.seo_score, scraped_data=cached["scraped_data"], audit_output=cached["audit_output"])
     
-    # Fallback to DB
     audit_dict = json.loads(log_entry.audit_findings)
     scraped_dict = json.loads(log_entry.scraped_data_snapshot)
     return AuditResultsResponse(log_id=log_entry.id, url=log_entry.url, timestamp=log_entry.timestamp.isoformat(), 
