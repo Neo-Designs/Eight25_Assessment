@@ -1,54 +1,40 @@
-# Stage 1: Build dependencies
+# --- Stage 1: Builder ---
 FROM python:3.11-slim as builder
 
 WORKDIR /app
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
-    curl \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --user -r requirements.txt
 
-# Install Playwright browsers (chromium)
-RUN playwright install chromium --with-deps
+# Install Playwright and browsers to a known location
+RUN pip install --no-cache-dir --user playwright && \
+    python -m playwright install chromium --with-deps
 
-# Stage 2: Runtime
+# --- Stage 2: Runtime ---
 FROM python:3.11-slim
 
 WORKDIR /app
 
-# Copy python packages and binaries from builder
-COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
-COPY --from=builder /usr/local/bin /usr/local/bin
-
-# Install playwright system dependencies again (required for runtime)
-RUN apt-get update && apt-get install -y \
-    libnss3 \
-    libnspr4 \
-    libatk1.0-0 \
-    libatk-bridge2.0-0 \
-    libcups2 \
-    libdrm2 \
-    libxkbcommon0 \
-    libxcomposite1 \
-    libxdamage1 \
-    libxfixes3 \
-    libxrandr2 \
-    libgbm1 \
-    libasound2 \
+# Install only necessary runtime system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 \
+    libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 \
+    libgbm1 libasound2 \
     && rm -rf /var/lib/apt/lists/*
 
+# Copy installed packages from builder
+COPY --from=builder /root/.local /root/.local
+# Copy Playwright browsers
 COPY --from=builder /root/.cache/ms-playwright /root/.cache/ms-playwright
 
-# Copy backend code
+ENV PATH=/root/.local/bin:$PATH
+ENV PLAYWRIGHT_BROWSERS_PATH=/root/.cache/ms-playwright
+
 COPY . .
 
-# Expose port
 EXPOSE 8000
-
-# Run uvicorn
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
