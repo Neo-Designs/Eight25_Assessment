@@ -24,7 +24,6 @@ graph TD
 
 ## Design Decisions
 
-*Written by the Lead Architect:*
 
 When conceiving this tool, I established two core architectural pillars: **data integrity** and **auditability**.
 
