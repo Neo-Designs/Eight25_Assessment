@@ -370,7 +370,7 @@ export default function AuditDetailPage() {
           </div>
 
           {/* Message thread (existing) */}
-          <div className="max-h-80 overflow-y-auto space-y-3 p-3 bg-light-bg dark:bg-dark-bg rounded-2xl border border-border">
+          <div className="max-h-80 overflow-y-auto space-y-3 p-3 bg-light-bg dark:bg-dark-surface rounded-2xl border border-border">
             {messages.length === 0 ? (
               <div className="py-10 text-center space-y-2">
                 <MessageSquare className="h-6 w-6 text-secondary/40 mx-auto" />
