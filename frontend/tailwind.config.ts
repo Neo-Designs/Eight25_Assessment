@@ -11,12 +11,12 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        primary: '#6366F1',
-        'primary-hover': '#4F46E5',
+        primary: '#0EA5E9',
+        'primary-hover': '#0284C7',
         secondary: '#64748B',
-        accent: '#8B5CF6',
+        accent: '#F97316',
         light: { bg: '#F8FAFC', surface: '#FFFFFF', text: '#0F172A' },
-        dark: { bg: '#0F172A', surface: '#1E293B', text: '#E2E8F0' },
+        dark: { bg: '#0B1121', surface: '#152033', text: '#E2E8F0' },
         // Aliases for seamless layout switching
         background: 'var(--bg-color)',
         surface: 'var(--surface-color)',

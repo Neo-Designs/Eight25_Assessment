@@ -5,7 +5,7 @@
 @custom-variant dark (&:is(.dark *));
 
 /* ============================================================
-   COLOR PALETTE — INDIGO MODERN DESIGN SYSTEM
+   COLOR PALETTE — OCEAN TEAL DESIGN SYSTEM
    ============================================================ */
 :root {
   /* Light Mode (default) */
@@ -21,27 +21,27 @@
 
 .dark {
   /* Dark Mode */
-  --bg-color:      #0F172A;
-  --surface-color: #1E293B;
+  --bg-color:      #0B1121;
+  --surface-color: #152033;
   --text-color:    #E2E8F0;
   --muted-color:   #94A3B8;
-  --border-color:  #334155;
+  --border-color:  #1E3048;
 }
 
 /* ============================================================
    TAILWIND v4 THEME TOKENS
    ============================================================ */
 @theme inline {
-  --color-primary: #6366F1;
-  --color-primary-hover: #4F46E5;
+  --color-primary: #0EA5E9;
+  --color-primary-hover: #0284C7;
   --color-secondary: #64748B;
-  --color-accent: #8B5CF6;
+  --color-accent: #F97316;
 
   --color-light-bg: #F8FAFC;
   --color-light-surface: #FFFFFF;
   --color-light-text: #0F172A;
-  --color-dark-bg: #0F172A;
-  --color-dark-surface: #1E293B;
+  --color-dark-bg: #0B1121;
+  --color-dark-surface: #152033;
   --color-dark-text: #E2E8F0;
 
   /* Aliases for global flipping */

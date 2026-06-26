@@ -111,17 +111,17 @@ export default function Sidebar() {
       </nav>
 
       {/* ─── Theme Toggle + Status ───────────────────── */}
-      {!collapsed && (
-        <div className="px-4 py-3 border-t border-border space-y-2">
-          <div className="flex items-center justify-between">
+      <div className={`${collapsed ? 'px-2' : 'px-4'} py-3 border-t border-border space-y-2`}>
+        <div className={`flex items-center ${collapsed ? 'justify-center' : 'justify-between'}`}>
+          {!collapsed && (
             <div className="flex items-center gap-2 text-[10px] text-secondary font-mono">
               <Activity className="h-3 w-3 text-emerald-400" />
               <span>Backend :8000</span>
             </div>
-            <ThemeToggle />
-          </div>
+          )}
+          <ThemeToggle />
         </div>
-      )}
+      </div>
 
       {/* ─── Collapse toggle ─────────────────────────── */}
       <button
