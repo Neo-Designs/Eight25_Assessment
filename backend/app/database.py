@@ -3,21 +3,15 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 from app.models.db_models import Base, ScanHistory
 
-# SQLite file located in the backend root directory
-DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///./audit_tool.db")
+# 1. Configuration: Look for DATABASE_URL, default to local SQLite
+SQLALCHEMY_DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///./webcrawler.db")
 
-engine = create_engine(
-    DATABASE_URL, 
-    connect_args={"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
-)
+# 2. Engine Setup: SQLite needs check_same_thread=False
+connect_args = {"check_same_thread": False} if SQLALCHEMY_DATABASE_URL.startswith("sqlite") else {}
+engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args=connect_args)
 
+# 3. Session Factory
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-def init_db():
-    # To handle the schema change cleanly in development, drop tables and recreate.
-    # In production, use Alembic for migrations.
-    Base.metadata.drop_all(bind=engine)
-    Base.metadata.create_all(bind=engine)
 
 def get_db():
     db = SessionLocal()
@@ -26,7 +20,19 @@ def get_db():
     finally:
         db.close()
 
-def log_scan_history(db: Session, url: str, system_prompt: str, user_prompt: str, scraped_data_snapshot: str, audit_findings: str, seo_score: int = None, user_id: int = None) -> ScanHistory:
+def init_db():
+    """
+    Initializes/Resets the database schema. 
+    Note: Base.metadata.drop_all(bind=engine) deletes ALL data.
+    """
+    Base.metadata.drop_all(bind=engine)
+    Base.metadata.create_all(bind=engine)
+
+# --- Scan History Helpers ---
+
+def log_scan_history(db: Session, url: str, system_prompt: str, user_prompt: str, 
+                     scraped_data_snapshot: str, audit_findings: str, 
+                     seo_score: int = None, user_id: int = None) -> ScanHistory:
     db_log = ScanHistory(
         url=url,
         system_prompt=system_prompt,
