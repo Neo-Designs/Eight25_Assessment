@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  Clock, ExternalLink, ChevronRight, RefreshCw, Loader2,
+  Clock, ChevronRight, RefreshCw,
   WifiOff, TrendingUp, GitCompare,
 } from 'lucide-react';
 
@@ -54,12 +54,12 @@ export default function HistoryPage() {
       const data: HistoryItem[] = await res.json();
       setHistoryItems(data);
       setHistoryState('success');
-    } catch (err: any) {
+    } catch (err: unknown) {
       const isOffline = err instanceof TypeError && err.message.toLowerCase().includes('fetch');
       setHistoryError(
         isOffline
           ? 'Cannot reach backend (http://localhost:8000). Is the FastAPI server running?'
-          : err.message ?? 'Unexpected error while loading history.'
+          : (err instanceof Error ? err.message : 'Unexpected error while loading history.')
       );
       setHistoryState('error');
     }
@@ -84,7 +84,7 @@ export default function HistoryPage() {
     <div className="min-h-screen bg-light-bg dark:bg-dark-bg text-light-text dark:text-dark-text selection:bg-primary selection:text-white pb-16">
 
       {/* ── Header ─────────────────────────────────────────────── */}
-      <header className="border-b border-primary/15 bg-light-bg dark:bg-dark-bg/80 backdrop-blur sticky top-0 z-40">
+      <header className="border-b border-border bg-light-bg/80 dark:bg-dark-bg/80 backdrop-blur sticky top-0 z-40">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center gap-3">
           <div className="h-8 w-8 rounded-lg bg-primary/10 border border-primary/25 flex items-center justify-center">
             <Clock className="h-4 w-4 text-primary" />
@@ -97,7 +97,7 @@ export default function HistoryPage() {
           <div className="ml-auto flex items-center gap-3">
             <button
               onClick={() => router.push('/drift')}
-              className="flex items-center gap-2 px-3 py-2 bg-light-surface dark:bg-dark-surface border border-primary/20 rounded-xl text-secondary hover:text-light-text dark:hover:text-dark-text hover:border-primary/40 transition text-xs"
+              className="flex items-center gap-2 px-3 py-2 bg-light-surface dark:bg-dark-surface border border-border rounded-xl text-secondary hover:text-light-text dark:hover:text-dark-text hover:border-primary/40 transition text-xs"
             >
               <GitCompare className="h-3.5 w-3.5" />
               <span>Drift Compare</span>
@@ -105,7 +105,7 @@ export default function HistoryPage() {
             <button
               onClick={fetchHistory}
               disabled={historyState === 'loading'}
-              className="flex items-center gap-2 px-3 py-2 bg-light-surface dark:bg-dark-surface border border-primary/20 rounded-xl hover:border-primary/40 text-secondary hover:text-light-text dark:hover:text-dark-text transition text-xs disabled:opacity-50"
+              className="flex items-center gap-2 px-3 py-2 bg-light-surface dark:bg-dark-surface border border-border rounded-xl hover:border-primary/40 text-secondary hover:text-light-text dark:hover:text-dark-text transition text-xs disabled:opacity-50"
               title="Refresh history"
             >
               <RefreshCw className={`h-3.5 w-3.5 ${historyState === 'loading' ? 'animate-spin' : ''}`} />
@@ -121,7 +121,7 @@ export default function HistoryPage() {
         {historyState === 'success' && (
           <div className="flex items-center gap-2">
             <h1 className="text-sm font-bold text-light-text dark:text-dark-text">Historical Audit Logs</h1>
-            <span className="text-[10px] font-mono text-secondary bg-light-surface dark:bg-dark-surface border border-primary/15 px-2 py-0.5 rounded-full">
+            <span className="text-[10px] font-mono text-secondary bg-light-surface dark:bg-dark-surface border border-border px-2 py-0.5 rounded-full">
               {historyItems.length} {historyItems.length === 1 ? 'entry' : 'entries'}
             </span>
           </div>
@@ -131,7 +131,7 @@ export default function HistoryPage() {
         {historyState === 'loading' && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {[...Array(4)].map((_, i) => (
-              <div key={i} className="bg-light-surface dark:bg-dark-surface/40 border border-primary/15 p-5 rounded-2xl animate-pulse">
+              <div key={i} className="bg-light-surface dark:bg-dark-surface border border-border p-5 rounded-2xl animate-pulse">
                 <div className="h-2.5 bg-secondary/20 rounded w-1/3 mb-3" />
                 <div className="h-3 bg-secondary/20 rounded w-2/3" />
               </div>
@@ -141,7 +141,7 @@ export default function HistoryPage() {
 
         {/* Error state */}
         {historyState === 'error' && (
-          <div className="flex flex-col items-center justify-center py-16 bg-light-surface dark:bg-dark-surface/20 border border-dashed border-rose-500/20 rounded-3xl text-center gap-4">
+          <div className="flex flex-col items-center justify-center py-16 bg-light-surface dark:bg-dark-surface border border-dashed border-rose-500/20 rounded-3xl text-center gap-4">
             <div className="h-12 w-12 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center">
               <WifiOff className="h-5 w-5 text-rose-400" />
             </div>
@@ -151,7 +151,7 @@ export default function HistoryPage() {
             </div>
             <button
               onClick={fetchHistory}
-              className="flex items-center gap-2 px-4 py-2 bg-light-surface dark:bg-dark-surface border border-primary/20 rounded-xl text-xs text-secondary hover:text-light-text dark:hover:text-dark-text hover:border-primary/40 transition"
+              className="flex items-center gap-2 px-4 py-2 bg-light-surface dark:bg-dark-surface border border-border rounded-xl text-xs text-secondary hover:text-light-text dark:hover:text-dark-text hover:border-primary/40 transition"
             >
               <RefreshCw className="h-3.5 w-3.5" />
               Retry
@@ -161,8 +161,8 @@ export default function HistoryPage() {
 
         {/* Empty state */}
         {historyState === 'success' && historyItems.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-20 bg-light-surface dark:bg-dark-surface/10 border border-dashed border-primary/15 rounded-3xl gap-4">
-            <div className="h-12 w-12 rounded-2xl bg-light-surface dark:bg-dark-surface border border-primary/20 flex items-center justify-center">
+          <div className="flex flex-col items-center justify-center py-20 bg-light-surface dark:bg-dark-surface border border-dashed border-border rounded-3xl gap-4">
+            <div className="h-12 w-12 rounded-2xl bg-light-surface dark:bg-dark-surface border border-border flex items-center justify-center">
               <TrendingUp className="h-5 w-5 text-secondary" />
             </div>
             <div className="text-center">
@@ -173,7 +173,7 @@ export default function HistoryPage() {
               onClick={() => router.push('/')}
               className="flex items-center gap-2 px-4 py-2 bg-primary/10 border border-primary/25 rounded-xl text-xs text-primary hover:bg-primary/20 transition"
             >
-              Run an audit →
+              Run an audit &rarr;
             </button>
           </div>
         )}
@@ -185,12 +185,12 @@ export default function HistoryPage() {
               <button
                 key={item.id}
                 onClick={() => handleOpenDetail(item)}
-                className="bg-light-surface dark:bg-dark-surface/40 border border-primary/15 hover:border-primary/40 hover:bg-light-surface dark:hover:bg-dark-surface/70 p-5 rounded-2xl transition flex items-center justify-between group text-left w-full"
+                className="bg-light-surface dark:bg-dark-surface border border-border hover:border-primary/40 hover:shadow-md hover:shadow-primary/5 p-5 rounded-2xl transition-all flex items-center justify-between group text-left w-full"
               >
                 <div className="space-y-1.5 truncate pr-4 flex-1">
                   <div className="flex items-center gap-2 text-[10px] text-secondary font-mono">
                     <span className="text-primary/70">#{item.id}</span>
-                    <span>·</span>
+                    <span>&middot;</span>
                     <span>{item.timestamp ? new Date(item.timestamp).toLocaleString() : '—'}</span>
                   </div>
                   <p className="font-semibold text-sm text-light-text dark:text-dark-text truncate font-mono group-hover:text-primary transition">
@@ -207,8 +207,8 @@ export default function HistoryPage() {
         )}
       </main>
 
-      <footer className="border-t border-primary/15 bg-light-surface dark:bg-dark-surface/70 py-6 text-center text-xs text-secondary">
-        © 2026 EIGHT25MEDIA · WebCrawler — Professional SEO &amp; Conversion Audit Platform
+      <footer className="border-t border-border bg-light-surface/70 dark:bg-dark-surface/70 py-6 text-center text-xs text-secondary">
+        &copy; 2026 EIGHT25MEDIA &middot; WebCrawler — Professional SEO &amp; Conversion Audit Platform
       </footer>
     </div>
   );

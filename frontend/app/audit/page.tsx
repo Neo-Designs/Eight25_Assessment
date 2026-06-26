@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Loader2, ShieldAlert, Sparkles, Check } from 'lucide-react';
@@ -12,7 +12,7 @@ const STAGES = [
   { label: 'Generating Structured Insights', desc: 'Running Instructor AI pass-1 and pass-2 recommendations' }
 ];
 
-export default function AuditLoadingPage() {
+function AuditLoadingContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [activeStage, setActiveStage] = useState(0);
@@ -69,8 +69,8 @@ export default function AuditLoadingPage() {
           router.push(`/detail/${data.audit_id}`);
         }, 1500);
 
-      } catch (err: any) {
-        setError(err.message || 'Failed to connect to audit server.');
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : 'Failed to connect to audit server.');
       }
     };
 
@@ -90,7 +90,7 @@ export default function AuditLoadingPage() {
           <p className="text-secondary text-sm">{error}</p>
           <button
             onClick={() => router.push('/')}
-            className="w-full bg-primary hover:bg-primary/90 text-white font-medium py-2 rounded-xl transition text-sm"
+            className="w-full bg-primary hover:bg-primary-hover text-white font-medium py-2 rounded-xl transition text-sm"
           >
             Return Home
           </button>
@@ -115,7 +115,7 @@ export default function AuditLoadingPage() {
         </div>
 
         {/* Dynamic Status Progress Stages */}
-        <div className="bg-light-surface dark:bg-dark-surface/60 border border-primary/15 rounded-3xl p-6 text-left space-y-4">
+        <div className="bg-light-surface dark:bg-dark-surface border border-border rounded-3xl p-6 text-left space-y-4">
           {STAGES.map((stage, idx) => {
             const isCompleted = idx < activeStage;
             const isActive = idx === activeStage;
@@ -124,7 +124,7 @@ export default function AuditLoadingPage() {
               <div 
                 key={idx} 
                 className={`flex items-start space-x-4 p-3 rounded-xl transition ${
-                  isActive ? 'bg-light-bg dark:bg-dark-bg border border-primary/20 shadow-sm' : 'opacity-40'
+                  isActive ? 'bg-light-bg dark:bg-dark-bg border border-primary/20 shadow-sm' : isCompleted ? 'opacity-60' : 'opacity-40'
                 }`}
               >
                 <div className="flex-shrink-0 mt-0.5">
@@ -135,7 +135,7 @@ export default function AuditLoadingPage() {
                   ) : isActive ? (
                     <Loader2 className="h-5 w-5 text-primary animate-spin" />
                   ) : (
-                    <div className="h-5 w-5 bg-light-bg dark:bg-dark-bg border border-primary/20 text-secondary rounded-full flex items-center justify-center text-[10px] font-bold">
+                    <div className="h-5 w-5 bg-light-bg dark:bg-dark-bg border border-border text-secondary rounded-full flex items-center justify-center text-[10px] font-bold">
                       {idx + 1}
                     </div>
                   )}
@@ -154,7 +154,7 @@ export default function AuditLoadingPage() {
         </div>
 
         {/* Dynamic Glowing Bar */}
-        <div className="h-1.5 w-full bg-light-surface dark:bg-dark-surface rounded-full overflow-hidden border border-primary/15">
+        <div className="h-1.5 w-full bg-light-surface dark:bg-dark-surface rounded-full overflow-hidden border border-border">
           <motion.div 
             initial={{ width: '0%' }}
             animate={{ width: `${((activeStage + 1) / STAGES.length) * 100}%` }}
@@ -164,5 +164,19 @@ export default function AuditLoadingPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function AuditLoadingPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-light-bg dark:bg-dark-bg flex items-center justify-center">
+          <Loader2 className="h-8 w-8 text-primary animate-spin" />
+        </div>
+      }
+    >
+      <AuditLoadingContent />
+    </Suspense>
   );
 }

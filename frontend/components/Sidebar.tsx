@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import {
-  Spider, Home, Clock, GitCompare, ChevronLeft, ChevronRight, Activity,
+  Home, Clock, GitCompare, ChevronLeft, ChevronRight, Activity,
 } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
 
@@ -44,16 +44,15 @@ export default function Sidebar() {
     <aside
       className={`
         relative flex-shrink-0 flex flex-col h-screen
-        bg-light-surface dark:bg-dark-surface border-r border-primary/15
+        bg-light-surface dark:bg-dark-surface border-r border-border
         transition-all duration-300 ease-in-out
         ${collapsed ? 'w-16' : 'w-60'}
       `}
       style={{ position: 'sticky', top: 0 }}
     >
       {/* ─── Logo / Brand ──────────────────────────── */}
-      <div className={`flex items-center h-16 px-4 border-b border-primary/15 gap-3 overflow-hidden`}>
+      <div className={`flex items-center h-16 px-4 border-b border-border gap-3 overflow-hidden`}>
         <div className="flex-shrink-0 h-8 w-8 rounded-lg bg-primary/10 border border-primary/30 flex items-center justify-center">
-          {/* Web/Spider icon as SVG since lucide 'Spider' may not exist — use Radar fallback */}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
                className="h-4 w-4 text-primary" aria-hidden="true">
             <circle cx="12" cy="12" r="2"/>
@@ -92,7 +91,7 @@ export default function Sidebar() {
                 transition-all duration-150 group relative
                 ${active
                   ? 'bg-primary/10 text-primary border border-primary/25'
-                  : 'text-secondary hover:text-light-text dark:text-dark-text hover:bg-primary/5 border border-transparent'
+                  : 'text-secondary hover:text-light-text dark:hover:text-dark-text hover:bg-primary/5 border border-transparent'
                 }
               `}
             >
@@ -103,7 +102,6 @@ export default function Sidebar() {
                   <p className="text-[10px] text-secondary mt-0.5 truncate">{item.description}</p>
                 </div>
               )}
-              {/* Active indicator dot */}
               {active && (
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 h-1.5 w-1.5 rounded-full bg-primary flex-shrink-0" />
               )}
@@ -114,7 +112,7 @@ export default function Sidebar() {
 
       {/* ─── Theme Toggle + Status ───────────────────── */}
       {!collapsed && (
-        <div className="px-4 py-3 border-t border-primary/15 space-y-2">
+        <div className="px-4 py-3 border-t border-border space-y-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-[10px] text-secondary font-mono">
               <Activity className="h-3 w-3 text-emerald-400" />
@@ -131,7 +129,7 @@ export default function Sidebar() {
         className="
           absolute -right-3 top-1/2 -translate-y-1/2
           h-6 w-6 rounded-full
-          bg-light-surface dark:bg-dark-surface border border-primary/20
+          bg-light-surface dark:bg-dark-surface border border-border
           flex items-center justify-center
           text-secondary hover:text-primary hover:border-primary/50
           transition z-10 shadow-sm
@@ -146,4 +144,3 @@ export default function Sidebar() {
     </aside>
   );
 }
-
