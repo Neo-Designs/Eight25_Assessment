@@ -87,6 +87,11 @@ class HistoryItem(BaseModel):
     url: str
     seo_score: Optional[int]
 
+# New: logs response model
+class AuditLogsResponse(BaseModel):
+    system_prompt: str
+    user_prompt: str
+
 _audit_cache: Dict[int, Dict[str, Any]] = {}
 
 # 6. Core Endpoints
@@ -134,3 +139,53 @@ async def audit_results(audit_id: int, db: Session = Depends(get_db)):
 @app.get("/api/health", tags=["System"])
 def health_check():
     return {"status": "healthy", "provider": ai_engine.provider, "model": ai_engine.model_name}
+
+# ─────────────────────────────────────────────────────────────────
+# Additional endpoints referenced by frontend/tests but not yet routed
+# - GET /api/audit/{id}/logs      -> returns stored system and user prompts
+# - POST /api/drift               -> scrape two URLs and return both ScrapedPageData
+# - POST /api/chat                -> interactive chat based on stored audit results
+# ─────────────────────────────────────────────────────────────────
+
+@app.get("/api/audit/{audit_id}/logs", response_model=AuditLogsResponse, tags=["Audit"])
+def audit_logs(audit_id: int, db: Session = Depends(get_db)):
+    log_entry = db.query(ScanHistory).filter(ScanHistory.id == audit_id).first()
+    if not log_entry:
+        raise HTTPException(status_code=404, detail="Audit not found.")
+    return AuditLogsResponse(system_prompt=log_entry.system_prompt, user_prompt=log_entry.user_prompt)
+
+@app.post("/api/drift", response_model=DriftResponse, tags=["Audit"])
+async def drift_compare(request: DriftRequest):
+    # Validate URLs
+    primary_url = _require_valid_url(request.url)
+    competitor_url = _require_valid_url(request.competitor_url)
+
+    # Scrape both pages concurrently
+    try:
+        primary_task = asyncio.create_task(scraper.scrape(primary_url))
+        competitor_task = asyncio.create_task(scraper.scrape(competitor_url))
+        primary_result, competitor_result = await asyncio.gather(primary_task, competitor_task)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error scraping pages: {str(e)}")
+
+    return DriftResponse(primary_data=primary_result, competitor_data=competitor_result)
+
+@app.post("/api/chat", response_model=ChatResponse, tags=["Audit"])
+async def chat_endpoint(request: ChatRequest, db: Session = Depends(get_db)):
+    log_entry = db.query(ScanHistory).filter(ScanHistory.id == request.log_id).first()
+    if not log_entry:
+        raise HTTPException(status_code=404, detail="Audit log not found.")
+
+    # Load stored scraped data and audit output
+    try:
+        scraped = json.loads(log_entry.scraped_data_snapshot)
+    except Exception:
+        scraped = {}
+    try:
+        audit_out = json.loads(log_entry.audit_findings)
+    except Exception:
+        audit_out = {}
+
+    # Run chat on AI engine
+    reply = await ai_engine.run_chat(scraped, audit_out, request.message, request.history)
+    return ChatResponse(response=reply)
