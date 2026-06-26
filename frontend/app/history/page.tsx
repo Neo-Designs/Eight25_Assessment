@@ -7,7 +7,7 @@ import {
   WifiOff, TrendingUp, GitCompare,
 } from 'lucide-react';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL;
 
 interface HistoryItem {
   id: number;
