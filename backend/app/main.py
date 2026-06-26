@@ -3,10 +3,8 @@ import asyncio
 import os
 import json
 import logging
-from fastapi import FastAPI, Depends, HTTPException, Query
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from sqlalchemy.orm import Session
 from typing import List, Dict, Any, Optional
 
 # Force ProactorEventLoop on Windows
@@ -14,16 +12,9 @@ if sys.platform == 'win32':
     asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
 # Local App Imports
-from app.database import init_db, get_db, log_scan_history, get_scan_history
-from app.scraper import PlaywrightScraper
-from app.analyzer import AnalyzerService
-from app.ai_engine import AIEngine
-from app.models.schemas import (
-    ScrapedPageData, AIAuditOutput, ChatRequest, ChatResponse,
-    DriftRequest, DriftResponse
-)
-from app.models.db_models import ScanHistory, User
-from app.auth import router as auth_router, get_current_user_optional
+from app.database import init_db
+from app.auth import router as auth_router
+from app.audit import router as audit_router
 
 # ─────────────────────────────────────────────
 # 1. Initialize FastAPI
@@ -43,16 +34,20 @@ app.add_middleware(
 async def preflight_handler(rest_of_path: str):
     return {"message": "Preflight OK"}
 
+# Expose simple URL validator for tests and other modules
+def _require_valid_url(url: str) -> str:
+    url = (url or "").strip()
+    if not url.startswith(("http://", "https://")):
+        raise HTTPException(status_code=400, detail="Invalid URL scheme.")
+    return url
+
 # 3. Routers & Logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("audit_tool")
 
+# Include routers
 app.include_router(auth_router)
-
-# 4. Singletons & Startup
-scraper = PlaywrightScraper()
-analyzer = AnalyzerService()
-ai_engine = AIEngine()
+app.include_router(audit_router)
 
 for route in app.routes:
     if hasattr(route, "path"):
@@ -62,130 +57,3 @@ for route in app.routes:
 def on_startup():
     logger.info("Initializing database...")
     init_db()
-
-# 5. Request/Response Models
-class AuditStartRequest(BaseModel):
-    url: str
-    weights: Optional[Dict[str, float]] = None
-
-class AuditStartResponse(BaseModel):
-    audit_id: int
-    url: str
-    message: str
-
-class AuditResultsResponse(BaseModel):
-    log_id: int
-    url: str
-    timestamp: Optional[str]
-    seo_score: Optional[int]
-    scraped_data: Optional[ScrapedPageData]
-    audit_output: Optional[AIAuditOutput]
-
-class HistoryItem(BaseModel):
-    id: int
-    timestamp: Optional[str]
-    url: str
-    seo_score: Optional[int]
-
-# New: logs response model
-class AuditLogsResponse(BaseModel):
-    system_prompt: str
-    user_prompt: str
-
-_audit_cache: Dict[int, Dict[str, Any]] = {}
-
-# 6. Core Endpoints
-def _require_valid_url(url: str) -> str:
-    url = url.strip()
-    if not url.startswith(("http://", "https://")):
-        raise HTTPException(status_code=400, detail="Invalid URL scheme.")
-    return url
-
-@app.get("/api/history", response_model=List[HistoryItem], tags=["Audit"])
-def get_history(limit: int = Query(50, ge=1, le=200), db: Session = Depends(get_db), user: User = Depends(get_current_user_optional)):
-    user_id = user.id if user else None
-    logs = get_scan_history(db, limit=limit, user_id=user_id)
-    return [HistoryItem(id=log.id, timestamp=log.timestamp.isoformat() if log.timestamp else None, url=log.url, seo_score=log.seo_score) for log in logs]
-
-@app.post("/api/audit/start", response_model=AuditStartResponse, tags=["Audit"])
-async def audit_start(request: AuditStartRequest, db: Session = Depends(get_db), user: User = Depends(get_current_user_optional)):
-    url = _require_valid_url(request.url)
-    scraped_data = await scraper.scrape(url)
-    audit_output, system_prompt, user_prompt = await analyzer.analyze(scraped_data, weights=request.weights)
-    
-    log_entry = log_scan_history(db, url=url, system_prompt=system_prompt, user_prompt=user_prompt, 
-                                 scraped_data_snapshot=scraped_data.model_dump_json(), 
-                                 audit_findings=audit_output.model_dump_json(), 
-                                 seo_score=audit_output.overall_seo_health_score, user_id=user.id if user else None)
-    
-    _audit_cache[log_entry.id] = {"scraped_data": scraped_data, "audit_output": audit_output}
-    return AuditStartResponse(audit_id=log_entry.id, url=url, message="Audit completed.")
-
-@app.get("/api/audit/{audit_id}/results", response_model=AuditResultsResponse, tags=["Audit"])
-async def audit_results(audit_id: int, db: Session = Depends(get_db)):
-    log_entry = db.query(ScanHistory).filter(ScanHistory.id == audit_id).first()
-    if not log_entry: raise HTTPException(status_code=404, detail="Audit not found.")
-    
-    cached = _audit_cache.get(audit_id)
-    if cached:
-        return AuditResultsResponse(log_id=log_entry.id, url=log_entry.url, timestamp=log_entry.timestamp.isoformat(), 
-                                    seo_score=log_entry.seo_score, scraped_data=cached["scraped_data"], audit_output=cached["audit_output"])
-    
-    audit_dict = json.loads(log_entry.audit_findings)
-    scraped_dict = json.loads(log_entry.scraped_data_snapshot)
-    return AuditResultsResponse(log_id=log_entry.id, url=log_entry.url, timestamp=log_entry.timestamp.isoformat(), 
-                                seo_score=log_entry.seo_score, scraped_data=ScrapedPageData(**scraped_dict), audit_output=AIAuditOutput(**audit_dict))
-
-@app.get("/api/health", tags=["System"])
-def health_check():
-    return {"status": "healthy", "provider": ai_engine.provider, "model": ai_engine.model_name}
-
-# ─────────────────────────────────────────────────────────────────
-# Additional endpoints referenced by frontend/tests but not yet routed
-# - GET /api/audit/{id}/logs      -> returns stored system and user prompts
-# - POST /api/drift               -> scrape two URLs and return both ScrapedPageData
-# - POST /api/chat                -> interactive chat based on stored audit results
-# ─────────────────────────────────────────────────────────────────
-
-@app.get("/api/audit/{audit_id}/logs", response_model=AuditLogsResponse, tags=["Audit"])
-def audit_logs(audit_id: int, db: Session = Depends(get_db)):
-    log_entry = db.query(ScanHistory).filter(ScanHistory.id == audit_id).first()
-    if not log_entry:
-        raise HTTPException(status_code=404, detail="Audit not found.")
-    return AuditLogsResponse(system_prompt=log_entry.system_prompt, user_prompt=log_entry.user_prompt)
-
-@app.post("/api/drift", response_model=DriftResponse, tags=["Audit"])
-async def drift_compare(request: DriftRequest):
-    # Validate URLs
-    primary_url = _require_valid_url(request.url)
-    competitor_url = _require_valid_url(request.competitor_url)
-
-    # Scrape both pages concurrently
-    try:
-        primary_task = asyncio.create_task(scraper.scrape(primary_url))
-        competitor_task = asyncio.create_task(scraper.scrape(competitor_url))
-        primary_result, competitor_result = await asyncio.gather(primary_task, competitor_task)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error scraping pages: {str(e)}")
-
-    return DriftResponse(primary_data=primary_result, competitor_data=competitor_result)
-
-@app.post("/api/chat", response_model=ChatResponse, tags=["Audit"])
-async def chat_endpoint(request: ChatRequest, db: Session = Depends(get_db)):
-    log_entry = db.query(ScanHistory).filter(ScanHistory.id == request.log_id).first()
-    if not log_entry:
-        raise HTTPException(status_code=404, detail="Audit log not found.")
-
-    # Load stored scraped data and audit output
-    try:
-        scraped = json.loads(log_entry.scraped_data_snapshot)
-    except Exception:
-        scraped = {}
-    try:
-        audit_out = json.loads(log_entry.audit_findings)
-    except Exception:
-        audit_out = {}
-
-    # Run chat on AI engine
-    reply = await ai_engine.run_chat(scraped, audit_out, request.message, request.history)
-    return ChatResponse(response=reply)
