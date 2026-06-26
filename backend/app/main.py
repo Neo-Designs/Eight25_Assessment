@@ -7,7 +7,10 @@ if sys.platform == 'win32':
 
 import os
 import json
+import ipaddress
 import logging
+import socket
+from urllib.parse import urlparse
 from fastapi import FastAPI, BackgroundTasks, Depends, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -36,12 +39,14 @@ logger = logging.getLogger("audit_tool")
 # ─────────────────────────────────────────────
 app = FastAPI(title="Website Audit Tool API", version="2.0.0")
 
+CORS_ORIGINS = os.environ.get("CORS_ORIGINS", "http://localhost:3000").split(",")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],          # Restrict to your domain in production
+    allow_origins=CORS_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type"],
 )
 
 app.include_router(auth_router)
@@ -98,14 +103,34 @@ class HistoryItem(BaseModel):
 _audit_cache: Dict[int, Dict[str, Any]] = {}
 
 # ─────────────────────────────────────────────
-# Utility: validate URL
+# Utility: validate URL with SSRF protection
 # ─────────────────────────────────────────────
+_BLOCKED_HOSTS = {"localhost", "metadata.google.internal"}
+
+def _is_private_ip(hostname: str) -> bool:
+    try:
+        addr_info = socket.getaddrinfo(hostname, None)
+        for family, _, _, _, sockaddr in addr_info:
+            ip = ipaddress.ip_address(sockaddr[0])
+            if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
+                return True
+    except (socket.gaierror, ValueError):
+        pass
+    return False
+
 def _require_valid_url(url: str) -> str:
     url = url.strip()
     if not url.startswith(("http://", "https://")):
         raise HTTPException(
             status_code=400,
             detail="Invalid URL scheme. URL must start with http:// or https://"
+        )
+    parsed = urlparse(url)
+    hostname = parsed.hostname or ""
+    if hostname in _BLOCKED_HOSTS or _is_private_ip(hostname):
+        raise HTTPException(
+            status_code=400,
+            detail="URLs pointing to private/internal networks are not allowed."
         )
     return url
 
@@ -189,7 +214,7 @@ async def audit_start(
         raise
     except Exception as e:
         logger.error(f"[audit/start] FAILED for {url}: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Audit failed: {str(e)}")
+        raise HTTPException(status_code=500, detail="Audit processing failed. Please try again later.")
 
 
 # ── GET /api/audit/{id}/results ────────────────────────────────────
@@ -267,7 +292,7 @@ async def perform_drift_analysis(request: DriftRequest):
         raise
     except Exception as e:
         logger.error(f"[drift] FAILED: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Drift analysis failed: {str(e)}")
+        raise HTTPException(status_code=500, detail="Drift analysis failed. Please try again later.")
 
 
 @app.post("/api/chat", response_model=ChatResponse, tags=["Chat"])
@@ -295,15 +320,11 @@ async def chat_reasoning(request: ChatRequest, db: Session = Depends(get_db)):
         raise
     except Exception as e:
         logger.error(f"[chat] FAILED: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Chat reasoning failed: {str(e)}")
+        raise HTTPException(status_code=500, detail="Chat processing failed. Please try again later.")
 
 
 
 @app.get("/api/health", tags=["System"])
 def health_check():
-    """Service health + model info."""
-    return {
-        "status": "healthy",
-        "provider": ai_engine.provider,
-        "model": ai_engine.model_name,
-    }
+    """Service health check."""
+    return {"status": "healthy"}

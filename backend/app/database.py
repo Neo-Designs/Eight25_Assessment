@@ -14,9 +14,8 @@ engine = create_engine(
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 def init_db():
-    # To handle the schema change cleanly in development, drop tables and recreate.
-    # In production, use Alembic for migrations.
-    Base.metadata.drop_all(bind=engine)
+    # Create tables if they don't already exist.
+    # In production, use Alembic for proper migrations.
     Base.metadata.create_all(bind=engine)
 
 def get_db():
