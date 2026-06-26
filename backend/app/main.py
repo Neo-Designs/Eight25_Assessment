@@ -54,6 +54,10 @@ scraper = PlaywrightScraper()
 analyzer = AnalyzerService()
 ai_engine = AIEngine()
 
+for route in app.routes:
+    if hasattr(route, "path"):
+        print(f"ROUTE: {route.path} | METHODS: {route.methods}")
+
 @app.on_event("startup")
 def on_startup():
     logger.info("Initializing database...")
