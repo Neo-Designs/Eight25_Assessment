@@ -38,7 +38,15 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+# ... your existing imports ...
 
+# 2. Add this "Catch-All" route to force handling of OPTIONS requests
+@app.options("/{rest_of_path:path}")
+async def preflight_handler(rest_of_path: str):
+    return {"message": "Preflight OK"}
+
+# 3. Include your routers
+app.include_router(auth_router)
 # ─────────────────────────────────────────────
 # 2. Logging & Routers
 # ─────────────────────────────────────────────
