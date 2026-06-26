@@ -37,3 +37,19 @@ COPY package*.json ./
 RUN npm ci
 COPY . .
 RUN npm run build
+
+# Use the official Playwright Python image
+FROM mcr.microsoft.com/playwright/python:v1.44.0-jammy
+
+WORKDIR /app
+
+# Copy requirements and install
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy the rest of your app
+COPY . .
+
+# Expose port and command
+EXPOSE 10000
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "10000"]
