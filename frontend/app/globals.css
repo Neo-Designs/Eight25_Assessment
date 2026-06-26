@@ -1,60 +1,103 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
 @import "tailwindcss";
 
+/* ============================================================
+   COLOR PALETTE — MIDNIGHT SAGE DESIGN SYSTEM
+   ============================================================ */
 :root {
-  --background: #020617;
-  --foreground: #f1f5f9;
+  /* Light Mode (default) */
+  --bg-color:      #E6EFEF;
+  --surface-color: #c3d7eb;
+  --text-color:    #121e26;
+
   --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-mono: 'JetBrains Mono', 'Geist Mono', 'Fira Code', monospace;
 }
 
+.dark {
+  /* Dark Mode */
+  --bg-color:      #112a2e;
+  --surface-color: #162629;
+  --text-color:    #b2c2c2;
+}
+
+/* ============================================================
+   TAILWIND v4 THEME TOKENS
+   ============================================================ */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-primary: #1F4959;
+  --color-secondary: #5C7C89;
+  --color-accent: #A1C1C1;
+  --color-light-bg: #E6EFEF;
+  --color-light-surface: #c3d7eb;
+  --color-light-text: #121e26;
+  --color-dark-bg: #112a2e;
+  --color-dark-surface: #162629;
+  --color-dark-text: #b2c2c2;
+
+  /* Aliases for global flipping */
+  --color-background: var(--bg-color);
+  --color-surface: var(--surface-color);
+  --color-foreground: var(--text-color);
+
   --font-sans: var(--font-body);
   --font-mono: var(--font-mono);
 }
 
+/* ============================================================
+   BASE STYLES
+   ============================================================ */
 html {
   scroll-behavior: smooth;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background-color: var(--bg-color);
+  color: var(--text-color);
   font-family: var(--font-body);
   font-size: 14px;
   line-height: 1.65;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-/* Improve prose readability in markdown render areas */
-.prose p {
-  margin-bottom: 0.75em;
-  line-height: 1.7;
+/* ============================================================
+   SPIDERWEB ANIMATION KEYFRAMES
+   ============================================================ */
+@keyframes web-drift {
+  0%   { transform: scale(1)    rotate(0deg);   opacity: 0.045; }
+  33%  { transform: scale(1.04) rotate(2deg);   opacity: 0.065; }
+  66%  { transform: scale(0.97) rotate(-1.5deg);opacity: 0.05;  }
+  100% { transform: scale(1)    rotate(0deg);   opacity: 0.045; }
 }
 
-.prose ul {
-  margin: 0.5em 0;
-  padding-left: 1.25em;
+.spiderweb-bg {
+  animation: web-drift 18s ease-in-out infinite;
+  pointer-events: none;
+  user-select: none;
 }
 
-.prose li {
-  margin-bottom: 0.3em;
-  line-height: 1.6;
-}
+/* ============================================================
+   PROSE — MARKDOWN RENDER AREAS
+   ============================================================ */
+.prose p  { margin-bottom: 0.75em; line-height: 1.7; }
+.prose ul  { margin: 0.5em 0; padding-left: 1.25em; }
+.prose li  { margin-bottom: 0.3em; line-height: 1.6; }
+.prose h3  { font-size: 0.875rem; font-weight: 700; margin-top: 1em; margin-bottom: 0.4em; }
 
-.prose h3 {
-  font-size: 0.875rem;
-  font-weight: 700;
-  margin-top: 1em;
-  margin-bottom: 0.4em;
-}
-
-/* Better focus rings for accessibility */
+/* ============================================================
+   FOCUS RING — ACCESSIBILITY
+   ============================================================ */
 *:focus-visible {
-  outline: 2px solid #6366f1;
+  outline: 2px solid var(--color-primary);
   outline-offset: 2px;
+}
+
+/* ============================================================
+   RANGE INPUT ACCENT
+   ============================================================ */
+input[type="range"] {
+  accent-color: var(--color-primary);
 }

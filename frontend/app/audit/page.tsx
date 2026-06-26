@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Loader2, ShieldAlert, Sparkles, Check } from 'lucide-react';
 
 const STAGES = [
@@ -51,7 +51,7 @@ export default function AuditLoadingPage() {
 
     const runAudit = async () => {
       try {
-        const res = await fetch('http://localhost:8000/api/audit', {
+        const res = await fetch('http://localhost:8000/api/audit/start', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ url, weights })
@@ -63,12 +63,10 @@ export default function AuditLoadingPage() {
         }
 
         const data = await res.json();
-        // Save output to sessionStorage so the detail page can load it instantly
-        sessionStorage.setItem(`audit-${data.log_id}`, JSON.stringify(data));
         
         // Wait slightly for visual completion
         setTimeout(() => {
-          router.push(`/detail/${data.log_id}`);
+          router.push(`/detail/${data.audit_id}`);
         }, 1500);
 
       } catch (err: any) {
@@ -85,14 +83,14 @@ export default function AuditLoadingPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-6 text-slate-100">
-        <div className="max-w-md w-full bg-slate-900 border border-rose-500/20 p-8 rounded-3xl text-center space-y-4 shadow-2xl">
+      <div className="min-h-screen bg-light-bg dark:bg-dark-bg flex flex-col items-center justify-center p-6 text-light-text dark:text-dark-text">
+        <div className="max-w-md w-full bg-light-surface dark:bg-dark-surface border border-rose-500/20 p-8 rounded-3xl text-center space-y-4 shadow-2xl">
           <ShieldAlert className="h-12 w-12 text-rose-500 mx-auto" />
-          <h1 className="text-xl font-bold text-slate-100">Analysis Failed</h1>
-          <p className="text-slate-400 text-sm">{error}</p>
+          <h1 className="text-xl font-bold text-light-text dark:text-dark-text">Analysis Failed</h1>
+          <p className="text-secondary text-sm">{error}</p>
           <button
             onClick={() => router.push('/')}
-            className="w-full bg-slate-800 hover:bg-slate-700 text-white font-medium py-2 rounded-xl transition text-sm"
+            className="w-full bg-primary hover:bg-primary/90 text-white font-medium py-2 rounded-xl transition text-sm"
           >
             Return Home
           </button>
@@ -102,22 +100,22 @@ export default function AuditLoadingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-6 text-slate-100 overflow-hidden relative">
-      <div className="absolute top-1/2 left-1/2 w-[500px] h-[500px] bg-indigo-500/5 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2 pointer-events-none" />
+    <div className="min-h-screen bg-light-bg dark:bg-dark-bg flex flex-col items-center justify-center p-6 text-light-text dark:text-dark-text overflow-hidden relative">
+      <div className="absolute top-1/2 left-1/2 w-[500px] h-[500px] bg-primary/5 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2 pointer-events-none" />
 
       <div className="max-w-lg w-full text-center space-y-8 relative z-10">
         <div className="space-y-3">
-          <div className="h-12 w-12 bg-indigo-600/10 border border-indigo-500/20 text-indigo-400 rounded-2xl flex items-center justify-center mx-auto animate-pulse">
+          <div className="h-12 w-12 bg-primary/10 border border-primary/20 text-primary rounded-2xl flex items-center justify-center mx-auto animate-pulse">
             <Sparkles className="h-5 w-5" />
           </div>
-          <h1 className="text-2xl font-bold bg-gradient-to-r from-white via-indigo-150 to-indigo-300 bg-clip-text text-transparent">
+          <h1 className="text-2xl font-bold text-light-text dark:text-dark-text">
             Analyzing Webpage
           </h1>
-          <p className="text-xs text-slate-500 font-mono break-all">{searchParams.get('url')}</p>
+          <p className="text-xs text-secondary font-mono break-all">{searchParams.get('url')}</p>
         </div>
 
         {/* Dynamic Status Progress Stages */}
-        <div className="bg-slate-900/60 border border-slate-900 rounded-3xl p-6 text-left space-y-4">
+        <div className="bg-light-surface dark:bg-dark-surface/60 border border-primary/15 rounded-3xl p-6 text-left space-y-4">
           {STAGES.map((stage, idx) => {
             const isCompleted = idx < activeStage;
             const isActive = idx === activeStage;
@@ -126,28 +124,28 @@ export default function AuditLoadingPage() {
               <div 
                 key={idx} 
                 className={`flex items-start space-x-4 p-3 rounded-xl transition ${
-                  isActive ? 'bg-slate-900 border border-slate-800/80 shadow-sm' : 'opacity-40'
+                  isActive ? 'bg-light-bg dark:bg-dark-bg border border-primary/20 shadow-sm' : 'opacity-40'
                 }`}
               >
                 <div className="flex-shrink-0 mt-0.5">
                   {isCompleted ? (
-                    <div className="h-5 w-5 bg-indigo-600 text-white rounded-full flex items-center justify-center text-[10px] font-bold">
+                    <div className="h-5 w-5 bg-primary text-white rounded-full flex items-center justify-center text-[10px] font-bold">
                       <Check className="h-3 w-3" />
                     </div>
                   ) : isActive ? (
-                    <Loader2 className="h-5 w-5 text-indigo-400 animate-spin" />
+                    <Loader2 className="h-5 w-5 text-primary animate-spin" />
                   ) : (
-                    <div className="h-5 w-5 bg-slate-950 border border-slate-800 text-slate-500 rounded-full flex items-center justify-center text-[10px] font-bold">
+                    <div className="h-5 w-5 bg-light-bg dark:bg-dark-bg border border-primary/20 text-secondary rounded-full flex items-center justify-center text-[10px] font-bold">
                       {idx + 1}
                     </div>
                   )}
                 </div>
                 <div>
-                  <h3 className={`text-sm font-semibold ${isActive ? 'text-white' : 'text-slate-400'}`}>
+                  <h3 className={`text-sm font-semibold ${isActive ? 'text-light-text dark:text-dark-text' : 'text-secondary'}`}>
                     {stage.label}
                   </h3>
                   {isActive && (
-                    <p className="text-xs text-slate-400 mt-1">{stage.desc}</p>
+                    <p className="text-xs text-secondary mt-1">{stage.desc}</p>
                   )}
                 </div>
               </div>
@@ -156,12 +154,12 @@ export default function AuditLoadingPage() {
         </div>
 
         {/* Dynamic Glowing Bar */}
-        <div className="h-1.5 w-full bg-slate-900 rounded-full overflow-hidden border border-slate-850">
+        <div className="h-1.5 w-full bg-light-surface dark:bg-dark-surface rounded-full overflow-hidden border border-primary/15">
           <motion.div 
             initial={{ width: '0%' }}
             animate={{ width: `${((activeStage + 1) / STAGES.length) * 100}%` }}
             transition={{ duration: 1.5 }}
-            className="h-full bg-indigo-600 rounded-full shadow-lg shadow-indigo-600/50"
+            className="h-full bg-primary rounded-full shadow-lg shadow-primary/50"
           />
         </div>
       </div>

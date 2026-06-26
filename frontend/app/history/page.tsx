@@ -19,7 +19,7 @@ interface HistoryItem {
 type FetchState = 'idle' | 'loading' | 'error' | 'success';
 
 function getScoreColor(score: number | null) {
-  if (score === null) return 'text-slate-400 bg-slate-900 border-slate-800';
+  if (score === null) return 'text-secondary bg-secondary/10 border-secondary/20';
   if (score >= 85) return 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30';
   if (score >= 60) return 'text-amber-400 bg-amber-500/10 border-amber-500/30';
   return 'text-rose-400 bg-rose-500/10 border-rose-500/30';
@@ -81,23 +81,23 @@ export default function HistoryPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 selection:bg-indigo-500 selection:text-white pb-16">
+    <div className="min-h-screen bg-light-bg dark:bg-dark-bg text-light-text dark:text-dark-text selection:bg-primary selection:text-white pb-16">
 
       {/* ── Header ─────────────────────────────────────────────── */}
-      <header className="border-b border-slate-900 bg-slate-950/80 backdrop-blur sticky top-0 z-40">
+      <header className="border-b border-primary/15 bg-light-bg dark:bg-dark-bg/80 backdrop-blur sticky top-0 z-40">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center gap-3">
-          <div className="h-8 w-8 rounded-lg bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center">
-            <Clock className="h-4 w-4 text-indigo-400" />
+          <div className="h-8 w-8 rounded-lg bg-primary/10 border border-primary/25 flex items-center justify-center">
+            <Clock className="h-4 w-4 text-primary" />
           </div>
           <div>
-            <span className="font-bold text-sm text-slate-200 block leading-none">Audit History</span>
-            <span className="text-[10px] text-slate-500">All past audit runs logged from the database</span>
+            <span className="font-bold text-sm text-light-text dark:text-dark-text block leading-none">Audit History</span>
+            <span className="text-[10px] text-secondary">All past audit runs logged from the database</span>
           </div>
 
           <div className="ml-auto flex items-center gap-3">
             <button
               onClick={() => router.push('/drift')}
-              className="flex items-center gap-2 px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-slate-400 hover:text-white hover:border-indigo-500/40 transition text-xs"
+              className="flex items-center gap-2 px-3 py-2 bg-light-surface dark:bg-dark-surface border border-primary/20 rounded-xl text-secondary hover:text-light-text dark:hover:text-dark-text hover:border-primary/40 transition text-xs"
             >
               <GitCompare className="h-3.5 w-3.5" />
               <span>Drift Compare</span>
@@ -105,7 +105,7 @@ export default function HistoryPage() {
             <button
               onClick={fetchHistory}
               disabled={historyState === 'loading'}
-              className="flex items-center gap-2 px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl hover:bg-slate-800 hover:border-slate-700 text-slate-400 hover:text-white transition text-xs disabled:opacity-50"
+              className="flex items-center gap-2 px-3 py-2 bg-light-surface dark:bg-dark-surface border border-primary/20 rounded-xl hover:border-primary/40 text-secondary hover:text-light-text dark:hover:text-dark-text transition text-xs disabled:opacity-50"
               title="Refresh history"
             >
               <RefreshCw className={`h-3.5 w-3.5 ${historyState === 'loading' ? 'animate-spin' : ''}`} />
@@ -120,8 +120,8 @@ export default function HistoryPage() {
         {/* Count label */}
         {historyState === 'success' && (
           <div className="flex items-center gap-2">
-            <h1 className="text-sm font-bold text-white">Historical Audit Logs</h1>
-            <span className="text-[10px] font-mono text-slate-600 bg-slate-900 border border-slate-800 px-2 py-0.5 rounded-full">
+            <h1 className="text-sm font-bold text-light-text dark:text-dark-text">Historical Audit Logs</h1>
+            <span className="text-[10px] font-mono text-secondary bg-light-surface dark:bg-dark-surface border border-primary/15 px-2 py-0.5 rounded-full">
               {historyItems.length} {historyItems.length === 1 ? 'entry' : 'entries'}
             </span>
           </div>
@@ -131,9 +131,9 @@ export default function HistoryPage() {
         {historyState === 'loading' && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {[...Array(4)].map((_, i) => (
-              <div key={i} className="bg-slate-900/40 border border-slate-900 p-5 rounded-2xl animate-pulse">
-                <div className="h-2.5 bg-slate-800 rounded w-1/3 mb-3" />
-                <div className="h-3 bg-slate-800 rounded w-2/3" />
+              <div key={i} className="bg-light-surface dark:bg-dark-surface/40 border border-primary/15 p-5 rounded-2xl animate-pulse">
+                <div className="h-2.5 bg-secondary/20 rounded w-1/3 mb-3" />
+                <div className="h-3 bg-secondary/20 rounded w-2/3" />
               </div>
             ))}
           </div>
@@ -141,17 +141,17 @@ export default function HistoryPage() {
 
         {/* Error state */}
         {historyState === 'error' && (
-          <div className="flex flex-col items-center justify-center py-16 bg-slate-900/20 border border-dashed border-rose-500/20 rounded-3xl text-center gap-4">
+          <div className="flex flex-col items-center justify-center py-16 bg-light-surface dark:bg-dark-surface/20 border border-dashed border-rose-500/20 rounded-3xl text-center gap-4">
             <div className="h-12 w-12 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center">
               <WifiOff className="h-5 w-5 text-rose-400" />
             </div>
             <div>
               <p className="text-sm font-semibold text-rose-400">Failed to load history</p>
-              <p className="text-xs text-slate-500 mt-1 max-w-sm">{historyError}</p>
+              <p className="text-xs text-secondary mt-1 max-w-sm">{historyError}</p>
             </div>
             <button
               onClick={fetchHistory}
-              className="flex items-center gap-2 px-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-slate-300 hover:text-white hover:border-indigo-500 transition"
+              className="flex items-center gap-2 px-4 py-2 bg-light-surface dark:bg-dark-surface border border-primary/20 rounded-xl text-xs text-secondary hover:text-light-text dark:hover:text-dark-text hover:border-primary/40 transition"
             >
               <RefreshCw className="h-3.5 w-3.5" />
               Retry
@@ -161,17 +161,17 @@ export default function HistoryPage() {
 
         {/* Empty state */}
         {historyState === 'success' && historyItems.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-20 bg-slate-900/10 border border-dashed border-slate-900 rounded-3xl gap-4">
-            <div className="h-12 w-12 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center">
-              <TrendingUp className="h-5 w-5 text-slate-600" />
+          <div className="flex flex-col items-center justify-center py-20 bg-light-surface dark:bg-dark-surface/10 border border-dashed border-primary/15 rounded-3xl gap-4">
+            <div className="h-12 w-12 rounded-2xl bg-light-surface dark:bg-dark-surface border border-primary/20 flex items-center justify-center">
+              <TrendingUp className="h-5 w-5 text-secondary" />
             </div>
             <div className="text-center">
-              <p className="text-sm font-semibold text-slate-400">No audits yet</p>
-              <p className="text-xs text-slate-600 mt-1">Run your first audit from the Home page to populate history.</p>
+              <p className="text-sm font-semibold text-secondary">No audits yet</p>
+              <p className="text-xs text-secondary/60 mt-1">Run your first audit from the Home page to populate history.</p>
             </div>
             <button
               onClick={() => router.push('/')}
-              className="flex items-center gap-2 px-4 py-2 bg-indigo-600/20 border border-indigo-500/30 rounded-xl text-xs text-indigo-400 hover:bg-indigo-600/30 transition"
+              className="flex items-center gap-2 px-4 py-2 bg-primary/10 border border-primary/25 rounded-xl text-xs text-primary hover:bg-primary/20 transition"
             >
               Run an audit →
             </button>
@@ -185,21 +185,21 @@ export default function HistoryPage() {
               <button
                 key={item.id}
                 onClick={() => handleOpenDetail(item)}
-                className="bg-slate-900/40 border border-slate-900 hover:border-indigo-500/40 hover:bg-slate-900/70 p-5 rounded-2xl transition flex items-center justify-between group text-left w-full"
+                className="bg-light-surface dark:bg-dark-surface/40 border border-primary/15 hover:border-primary/40 hover:bg-light-surface dark:hover:bg-dark-surface/70 p-5 rounded-2xl transition flex items-center justify-between group text-left w-full"
               >
                 <div className="space-y-1.5 truncate pr-4 flex-1">
-                  <div className="flex items-center gap-2 text-[10px] text-slate-500 font-mono">
-                    <span className="text-indigo-400/70">#{item.id}</span>
+                  <div className="flex items-center gap-2 text-[10px] text-secondary font-mono">
+                    <span className="text-primary/70">#{item.id}</span>
                     <span>·</span>
                     <span>{item.timestamp ? new Date(item.timestamp).toLocaleString() : '—'}</span>
                   </div>
-                  <p className="font-semibold text-sm text-slate-200 truncate font-mono group-hover:text-white transition">
+                  <p className="font-semibold text-sm text-light-text dark:text-dark-text truncate font-mono group-hover:text-primary transition">
                     {item.url}
                   </p>
                 </div>
                 <div className="flex items-center gap-3 flex-shrink-0">
                   <ScoreBadge score={item.seo_score} />
-                  <ChevronRight className="h-4 w-4 text-slate-600 group-hover:text-indigo-400 transition" />
+                  <ChevronRight className="h-4 w-4 text-secondary group-hover:text-primary transition" />
                 </div>
               </button>
             ))}
@@ -207,8 +207,8 @@ export default function HistoryPage() {
         )}
       </main>
 
-      <footer className="border-t border-slate-900 bg-slate-950 py-6 text-center text-xs text-slate-700">
-        © 2026 EIGHT25MEDIA Enterprise Website Audit Tool
+      <footer className="border-t border-primary/15 bg-light-surface dark:bg-dark-surface/70 py-6 text-center text-xs text-secondary">
+        © 2026 EIGHT25MEDIA · WebCrawler — Professional SEO &amp; Conversion Audit Platform
       </footer>
     </div>
   );

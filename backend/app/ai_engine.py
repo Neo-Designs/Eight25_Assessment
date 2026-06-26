@@ -49,10 +49,7 @@ class AIEngine:
             self.provider = "openai"
             self.model_name = os.environ.get("OPENAI_MODEL_NAME", "gpt-4o-mini")
         else:
-            # Fallback mock/dummy mode if no API key is present, to prevent startup failure
-            self.client = None
-            self.provider = "mock"
-            self.model_name = "mock-model"
+            raise RuntimeError("Strict Mode: Missing required GEMINI_API_KEY or OPENAI_API_KEY environment variable for production.")
 
     def _load_prompts(self) -> Tuple[str, str]:
         # Read system prompt
@@ -103,87 +100,18 @@ class AIEngine:
         
         return rendered
 
-    async def run_audit(self, data: ScrapedPageData, weights: Optional[Dict[str, float]] = None) -> Tuple[AIAuditOutput, str, str]:
-        system_prompt, user_prompt_template = self._load_prompts()
-        user_prompt = self._render_user_prompt(user_prompt_template, data)
-        
-        # Inject custom sliders weights if provided
-        if weights:
-            weight_instruction = f"\n\n[USER CUSTOM WEIGHTING OPTIONS]\nWhen auditing, weigh findings according to these proportions: {json.dumps(weights)}. Ensure your overall health score calculation and recommendation prioritizations heavily emphasize categories with higher weights."
-            user_prompt += weight_instruction
-        
-        if self.provider == "mock":
-            # Return high-quality mock data when keys are missing so the tool remains interactive
-            mock_output = AIAuditOutput(
-                overall_seo_health_score=78,
-                summary="The page is technically sound but has critical gaps in image optimization and heading structure.",
-                findings=[
-                    {
-                        "category": "Accessibility",
-                        "observation": f"Out of {data.images.total_images} images, {data.images.images_without_alt} are missing alt-text descriptions.",
-                        "impact": "Reduces screen reader accessibility and image SEO indexing.",
-                        "grounding": [
-                            {"metric_name": "images_without_alt", "metric_value": str(data.images.images_without_alt)},
-                            {"metric_name": "alt_text_coverage_pct", "metric_value": f"{data.images.alt_text_coverage_pct}%"}
-                        ]
-                    },
-                    {
-                        "category": "SEO",
-                        "observation": f"The page has {data.headings.h1_count} H1 headings.",
-                        "impact": "Search engines prioritize a single H1 to understand page hierarchy.",
-                        "grounding": [
-                            {"metric_name": "h1_count", "metric_value": str(data.headings.h1_count)}
-                        ]
-                    }
-                ],
-                recommendations=[
-                    {
-                        "priority": 1,
-                        "title": "Add Descriptive Alt-Text to Images",
-                        "details": "Update all image tags missing description. Focus on context rather than keyword stuffing.",
-                        "expected_outcome": "Reach 100% alt-text coverage, enhancing screen reader support and image search placement.",
-                        "confidence_score": 0.95,
-                        "grounding": [
-                            {"metric_name": "alt_text_coverage_pct", "metric_value": f"{data.images.alt_text_coverage_pct}%"}
-                        ]
-                    },
-                    {
-                        "priority": 2,
-                        "title": "Consolidate H1 Headings",
-                        "details": "Ensure only one H1 heading is present on the page.",
-                        "expected_outcome": "Improved crawling crawlability and hierarchy structure alignment.",
-                        "confidence_score": 0.90,
-                        "grounding": [
-                            {"metric_name": "h1_count", "metric_value": str(data.headings.h1_count)}
-                        ]
-                    },
-                    {
-                        "priority": 3,
-                        "title": "Improve CTA Copy Context",
-                        "details": "Update CTA button descriptions to use clear, conversion-oriented copy.",
-                        "expected_outcome": "Increases click-through rate and user conversion alignment.",
-                        "confidence_score": 0.80,
-                        "grounding": [
-                            {"metric_name": "cta_count", "metric_value": str(data.cta_count)}
-                        ]
-                    }
-                ]
-            )
-            return mock_output, system_prompt, user_prompt
-
+    async def run_completion(self, system_prompt: str, user_prompt: str, response_model: type) -> AIAuditOutput:
         try:
-            # Both OpenAI and Gemini (via compatibility URL) use the standard completions endpoint
             response = self.client.chat.completions.create(
                 model=self.model_name,
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
                 ],
-                response_model=AIAuditOutput,
+                response_model=response_model,
             )
-            return response, system_prompt, user_prompt
+            return response
         except Exception as e:
-            # If API call fails, raise or fallback
             raise RuntimeError(f"Error calling LLM provider {self.provider}: {str(e)}")
 
     async def run_chat(self, scraped_data: dict, audit_output: dict, message: str, history: list) -> str:
@@ -205,9 +133,6 @@ class AIEngine:
             f"- Use plain, professional English. Avoid jargon or overly technical language.\n"
             f"- End with a short actionable takeaway if relevant.\n"
         )
-
-        if self.provider == "mock":
-            return f"**[MOCK CHAT RESPONSE]** I have reviewed the audit logs and your question: *\"{message}\"*. To optimize this webpage, you should focus on resolving the accessibility gaps (e.g. alt text coverage) and ensuring clear link architecture."
 
         try:
             # Construct messages array

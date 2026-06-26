@@ -1,4 +1,4 @@
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Literal
 from pydantic import BaseModel, Field, HttpUrl
 
 class LinkMetrics(BaseModel):
@@ -37,7 +37,7 @@ class GroundingSource(BaseModel):
     metric_value: str = Field(..., description="The value of the scraper metric observed in the page data")
 
 class AuditFinding(BaseModel):
-    category: str = Field(..., description="SEO, Performance, Content Quality, Link Architecture, or Accessibility")
+    category: Literal['SEO structure', 'Messaging clarity', 'CTA usage', 'Content depth', 'UX/structural concerns'] = Field(..., description="The category of the finding, must be one of the specified options.")
     observation: str = Field(..., description="Factual description of what was observed on the page")
     impact: str = Field(..., description="SEO or conversion rate optimization (CRO) impact of this finding")
     grounding: List[GroundingSource] = Field(
