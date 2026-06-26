@@ -1,7 +1,10 @@
+import logging
 import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 from app.models.db_models import Base, ScanHistory
+
+logger = logging.getLogger("audit_tool")
 
 # SQLite file located in the backend root directory
 DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///./audit_tool.db")
@@ -37,7 +40,12 @@ def log_scan_history(db: Session, url: str, system_prompt: str, user_prompt: str
         user_id=user_id
     )
     db.add(db_log)
-    db.commit()
+    try:
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Failed to commit scan history for {url}: {e}")
+        raise
     db.refresh(db_log)
     return db_log
 

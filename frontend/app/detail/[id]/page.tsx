@@ -98,7 +98,8 @@ export default function AuditDetailPage() {
         setLoading(false);
         return;
       } catch (_err) {
-        console.error('Error parsing cached audit', _err);
+        console.error('Corrupt sessionStorage cache, clearing entry:', _err);
+        sessionStorage.removeItem(`audit-${logId}`);
       }
     }
 
@@ -142,10 +143,12 @@ export default function AuditDetailPage() {
       if (!res.ok) throw new Error('Assistant response failed');
       const data = await res.json();
       setMessages(prev => [...prev, { role: 'assistant', content: data.response }]);
-    } catch {
+    } catch (err) {
+      const detail = err instanceof Error ? err.message : 'Unknown error';
+      console.error('Chat request failed:', detail);
       setMessages(prev => [
         ...prev,
-        { role: 'assistant', content: '**System Error:** Failed to fetch reply from engine.' },
+        { role: 'assistant', content: `**System Error:** ${detail}` },
       ]);
     } finally {
       setChatLoading(false);

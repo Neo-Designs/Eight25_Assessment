@@ -1,3 +1,4 @@
+import logging
 import os
 import re
 import json
@@ -7,6 +8,8 @@ import google.generativeai as genai
 import openai
 import instructor
 from app.models.schemas import ScrapedPageData, AIAuditOutput
+
+logger = logging.getLogger("audit_tool")
 
 # Load environment variables from backend root directory
 dotenv_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "backend", ".env")
@@ -57,6 +60,7 @@ class AIEngine:
             with open(self.system_prompt_path, "r", encoding="utf-8") as f:
                 system_prompt = f.read()
         else:
+            logger.warning(f"System prompt file not found at {self.system_prompt_path}, using built-in default")
             system_prompt = "You are an Expert SEO Strategist. Perform a website audit."
 
         # Read user prompt template
@@ -64,8 +68,9 @@ class AIEngine:
             with open(self.user_prompt_path, "r", encoding="utf-8") as f:
                 user_prompt_template = f.read()
         else:
+            logger.warning(f"User prompt template not found at {self.user_prompt_path}, using built-in default")
             user_prompt_template = "Audit this URL: {{ url }}"
-            
+
         return system_prompt, user_prompt_template
 
     def _render_user_prompt(self, template: str, data: ScrapedPageData) -> str:
@@ -134,21 +139,25 @@ class AIEngine:
             f"- End with a short actionable takeaway if relevant.\n"
         )
 
-        try:
-            # Construct messages array
-            formatted_messages = [{"role": "system", "content": system_chat_prompt}]
-            for msg in history:
-                formatted_messages.append({"role": msg.role, "content": msg.content})
-            formatted_messages.append({"role": "user", "content": message})
+        # Construct messages array
+        formatted_messages = [{"role": "system", "content": system_chat_prompt}]
+        for msg in history:
+            formatted_messages.append({"role": msg.role, "content": msg.content})
+        formatted_messages.append({"role": "user", "content": message})
 
-            # Use standard non-instructor client completions for free-form text chat
-            # Retrieve the underlying un-wrapped client or call completions directly
-            raw_client = self.client.client if hasattr(self.client, 'client') else self.client
+        # Use standard non-instructor client completions for free-form text chat
+        # Retrieve the underlying un-wrapped client or call completions directly
+        raw_client = self.client.client if hasattr(self.client, 'client') else self.client
+        try:
             chat_completion = raw_client.chat.completions.create(
                 model=self.model_name,
                 messages=formatted_messages
             )
-            return chat_completion.choices[0].message.content
         except Exception as e:
-            return f"Error communicating with assistant: {str(e)}"
+            raise RuntimeError(f"Chat completion failed ({self.provider}): {e}")
+
+        reply = chat_completion.choices[0].message.content
+        if reply is None:
+            raise RuntimeError("LLM returned an empty response for chat")
+        return reply
 
