@@ -4,6 +4,7 @@ import React, { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Loader2, ShieldAlert, Sparkles, Check } from 'lucide-react';
+import { apiFetch } from '@/lib/api';
 
 const STAGES = [
   { label: 'Initializing Page Scraper', desc: 'Booting headless Chromium context' },
@@ -51,19 +52,10 @@ function AuditLoadingContent() {
 
     const runAudit = async () => {
       try {
-          const API_BASE = process.env.NEXT_PUBLIC_API_URL;
-        const res = await fetch(`${API_BASE}/api/audit/start`, {
+        const data = await apiFetch<{ audit_id: number }>('/api/audit/start', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ url, weights })
+          body: JSON.stringify({ url, weights }),
         });
-
-        if (!res.ok) {
-          const detail = await res.json();
-          throw new Error(detail.detail || 'Audit processing failed');
-        }
-
-        const data = await res.json();
         
         // Wait slightly for visual completion
         setTimeout(() => {

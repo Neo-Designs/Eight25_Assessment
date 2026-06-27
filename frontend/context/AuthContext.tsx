@@ -36,9 +36,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    // Protect routes
-    const publicPaths = ['/login', '/register'];
-    if (!isLoading && !user && !publicPaths.includes(pathname)) {
+    // Protect routes — core audit flows work without login (backend supports optional auth)
+    const publicPaths = ['/', '/login', '/register', '/audit', '/history', '/drift'];
+    const isPublic =
+      publicPaths.includes(pathname) || pathname.startsWith('/detail/');
+    if (!isLoading && !user && !isPublic) {
       router.push('/login');
     }
   }, [user, isLoading, pathname, router]);

@@ -7,7 +7,7 @@ import {
   WifiOff, TrendingUp, GitCompare,
 } from 'lucide-react';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL;
+import { apiFetch } from '@/lib/api';
 
 interface HistoryItem {
   id: number;
@@ -44,14 +44,9 @@ export default function HistoryPage() {
     setHistoryState('loading');
     setHistoryError(null);
     try {
-      const res = await fetch(`${API_BASE}/api/history`, {
+      const data = await apiFetch<HistoryItem[]>('/api/history', {
         signal: AbortSignal.timeout(10_000),
       });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body?.detail ?? `Server error ${res.status}`);
-      }
-      const data: HistoryItem[] = await res.json();
       setHistoryItems(data);
       setHistoryState('success');
     } catch (err: unknown) {
@@ -70,13 +65,6 @@ export default function HistoryPage() {
   }, [fetchHistory]);
 
   const handleOpenDetail = (item: HistoryItem) => {
-    const stub = {
-      log_id: item.id,
-      url: item.url,
-      seo_score: item.seo_score,
-      audit_output: null,
-    };
-    sessionStorage.setItem(`audit-${item.id}`, JSON.stringify(stub));
     router.push(`/detail/${item.id}`);
   };
 

@@ -5,8 +5,9 @@ import { useRouter, useParams } from 'next/navigation';
 import ReactMarkdown from 'react-markdown';
 import { 
   ArrowLeft, AlertCircle, ExternalLink, Image as ImageIcon, 
-  ShieldCheck, MessageSquare, Send, Loader2
+  ShieldCheck, MessageSquare, Send, Loader2, Database, Cpu
 } from 'lucide-react';
+import { apiFetch } from '@/lib/api';
 
 interface GroundingSource {
   metric_name: string;
@@ -86,6 +87,8 @@ export default function AuditDetailPage() {
   const [messages, setMessages]       = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput]     = useState('');
   const [chatLoading, setChatLoading] = useState(false);
+  const [showInsightLogs, setShowInsightLogs] = useState(false);
+  const [dbLogDetail, setDbLogDetail] = useState<{ system_prompt: string; user_prompt: string } | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   // ── Data fetch ────────────────────────────────────────────────────────────
@@ -105,10 +108,8 @@ export default function AuditDetailPage() {
     // 2. Fallback: fetch from API
     const fetchLogFromAPI = async () => {
       try {
-        const API_BASE = process.env.NEXT_PUBLIC_API_URL;
-        const res = await fetch(`${API_BASE}/api/audit/${logId}/results`);
-        if (!res.ok) throw new Error('Failed to load audit detail log');
-        setAuditData(await res.json());
+        const data = await apiFetch<AuditResponse>(`/api/audit/${logId}/results`);
+        setAuditData(data);
       } catch (err: unknown) {
         setError(err instanceof Error ? err.message : 'Failed to load audit detail.');
       } finally {
@@ -119,7 +120,14 @@ export default function AuditDetailPage() {
     fetchLogFromAPI();
   }, [logId]);
 
-  // ── Chat scroll ───────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (showInsightLogs && !dbLogDetail) {
+      apiFetch<{ system_prompt: string; user_prompt: string }>(`/api/audit/${logId}/logs`)
+        .then(setDbLogDetail)
+        .catch(() => {});
+    }
+  }, [showInsightLogs, dbLogDetail, logId]);
+
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, chatLoading]);
@@ -135,14 +143,10 @@ export default function AuditDetailPage() {
     setChatLoading(true);
 
     try {
-      const API_BASE = process.env.NEXT_PUBLIC_API_URL;
-      const res = await fetch(`${API_BASE}/api/chat`, {
+      const data = await apiFetch<{ response: string }>('/api/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ log_id: logId, message: userMsg, history: messages }),
       });
-      if (!res.ok) throw new Error('Assistant response failed');
-      const data = await res.json();
       setMessages(prev => [...prev, { role: 'assistant', content: data.response }]);
     } catch {
       setMessages(prev => [
@@ -226,6 +230,17 @@ export default function AuditDetailPage() {
 
           <div className="flex items-center space-x-3">
             <span className="text-xs text-secondary font-mono">LOG #{auditData?.log_id}</span>
+            <button
+              onClick={() => setShowInsightLogs(!showInsightLogs)}
+              className={`flex items-center space-x-1.5 px-3 py-2 rounded-xl text-xs font-medium border transition-all ${
+                showInsightLogs
+                  ? 'bg-primary border-primary text-white shadow shadow-primary/20'
+                  : 'bg-light-surface dark:bg-dark-surface border-border text-secondary hover:border-primary/40'
+              }`}
+            >
+              <Database className="h-3.5 w-3.5" />
+              <span>Audit Insight</span>
+            </button>
           </div>
         </div>
       </header>
@@ -394,7 +409,7 @@ export default function AuditDetailPage() {
                   </div>
                 </div>
               ))
-            }
+            )}
             {chatLoading && (
               <div className="flex items-center gap-2 px-4 py-3 bg-light-surface dark:bg-dark-surface border border-border rounded-xl text-secondary text-sm">
                 <Loader2 className="h-4 w-4 animate-spin flex-shrink-0" />
@@ -427,6 +442,35 @@ export default function AuditDetailPage() {
             </button>
           </form>
         </section>
+
+        {showInsightLogs && dbLogDetail && (
+          <section className="bg-light-surface dark:bg-dark-surface border border-primary/20 rounded-3xl p-6 space-y-4">
+            <div className="flex items-center space-x-2 border-b border-border pb-3">
+              <Cpu className="h-5 w-5 text-primary" />
+              <h2 className="font-bold text-xs uppercase tracking-wider text-secondary">
+                Audit Reasoning Trace
+              </h2>
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 text-[11px] font-mono">
+              <div>
+                <span className="font-semibold text-secondary uppercase tracking-widest text-[9px] block mb-1">
+                  System Prompt
+                </span>
+                <pre className="p-3 bg-light-bg dark:bg-dark-bg rounded-xl border border-border text-secondary overflow-x-auto max-h-48 whitespace-pre-wrap">
+                  {dbLogDetail.system_prompt}
+                </pre>
+              </div>
+              <div>
+                <span className="font-semibold text-secondary uppercase tracking-widest text-[9px] block mb-1">
+                  User Prompt Payload
+                </span>
+                <pre className="p-3 bg-light-bg dark:bg-dark-bg rounded-xl border border-border text-secondary overflow-x-auto max-h-48 whitespace-pre-wrap">
+                  {dbLogDetail.user_prompt}
+                </pre>
+              </div>
+            </div>
+          </section>
+        )}
 
       </main>
 

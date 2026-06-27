@@ -5,7 +5,7 @@ import {
   BarChart3, Target, Loader2, WifiOff, GitCompare,
 } from 'lucide-react';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL;
+import { apiFetch } from '@/lib/api';
 
 interface ScrapedPageData {
   url: string;
@@ -77,19 +77,14 @@ export default function DriftPage() {
     setDriftResult(null);
 
     try {
-      const res = await fetch(`${API_BASE}/api/drift`, {
+      const data = await apiFetch<{
+        primary_data: ScrapedPageData;
+        competitor_data: ScrapedPageData;
+      }>('/api/drift', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: primaryUrl, competitor_url: competitorUrl }),
         signal: AbortSignal.timeout(60_000),
       });
-
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body?.detail ?? `Server error ${res.status}`);
-      }
-
-      const data = await res.json();
       setDriftResult({ primary: data.primary_data, competitor: data.competitor_data });
       setDriftState('success');
     } catch (err: unknown) {

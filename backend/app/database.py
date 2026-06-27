@@ -1,10 +1,9 @@
-import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
+from app.config import settings
 from app.models.db_models import Base, ScanHistory
 
-# 1. Configuration: Look for DATABASE_URL, default to local SQLite
-SQLALCHEMY_DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///./webcrawler.db")
+SQLALCHEMY_DATABASE_URL = settings.database_url
 
 # 2. Engine Setup: SQLite needs check_same_thread=False
 connect_args = {"check_same_thread": False} if SQLALCHEMY_DATABASE_URL.startswith("sqlite") else {}

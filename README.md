@@ -20,9 +20,24 @@ graph TD
     Client -->|HTTP GET /api/logs| SQLite
 ```
 
----
+## AI Architecture
 
-## Design Decisions
+The audit engine follows a **three-stage AI pipeline** with full traceability:
+
+```
+Scrape (Playwright) → Analyze (Instructor + Pydantic) → Persist (SQLite/PostgreSQL)
+```
+
+| Module | Role |
+|--------|------|
+| `app/pipeline.py` | Orchestrates scrape → analyze → persist |
+| `app/prompt_registry.py` | File-backed prompts from `prompts/` with schema guardrails |
+| `app/ai_engine.py` | LLM gateway with structured output + chat + retries |
+| `app/config.py` | Centralized env config (CORS, models, DB) |
+
+Every audit stores system prompt, user prompt, scraped snapshot, and structured JSON response for the **Audit Insight** trace view.
+
+---
 
 
 When conceiving this tool, I established two core architectural pillars: **data integrity** and **auditability**.
@@ -89,11 +104,24 @@ For this enterprise audit tool, we consciously chose a **single-page analysis de
    ```bash
    npm install
    ```
-3. Start the Next.js development server:
+3. Set the API URL (defaults to `http://localhost:8000` if omitted):
+   ```bash
+   export NEXT_PUBLIC_API_URL=http://localhost:8000
+   ```
+4. Start the Next.js development server:
    ```bash
    npm run dev
    ```
    The dashboard will be running on `http://localhost:3000`.
+
+### Docker Compose (recommended for deployment)
+From the repo root, copy `template.env` to `.env`, fill in API keys, then:
+```bash
+docker compose up --build
+```
+- Backend: `http://localhost:8000`
+- Frontend: `http://localhost:3000`
+- Health check: `GET /api/health`
 
 ### CLI Testing Utility
 You can test the scraper and AI audit logic directly from the command line using:
