@@ -1,10 +1,9 @@
-"""AI Engine — Groq-powered LLM gateway with structured output and quota recovery."""
+"""AI Engine — Groq-powered LLM gateway with structured JSON output and quota recovery."""
+import asyncio
 import json
 import os
-import asyncio
 from typing import Optional, Tuple
 
-import instructor
 import openai
 
 from app.config import settings
@@ -18,13 +17,13 @@ class QuotaExceededError(RuntimeError):
 
 
 class AIEngine:
-    """LLM gateway using Groq with structured output (Instructor) and conversational chat."""
+    """LLM gateway using Groq with Pydantic-validated JSON output and conversational chat."""
 
     def __init__(self, groq_api_key: str | None = None):
         self.prompt_registry = PromptRegistry()
-        self.client = None
+        self.client: openai.OpenAI | None = None
         self.provider = "groq"
-        self.model_name = None
+        self.model_name: str | None = None
         self._init_llm_client(groq_api_key)
 
     def _init_llm_client(self, groq_api_key: str | None = None):
@@ -33,11 +32,10 @@ class AIEngine:
             raise RuntimeError(
                 "Missing required GROQ_API_KEY environment variable."
             )
-        openai_client = openai.OpenAI(
+        self.client = openai.OpenAI(
             api_key=key,
             base_url="https://api.groq.com/openai/v1",
         )
-        self.client = instructor.from_openai(openai_client)
         self.model_name = settings.groq_model_name
 
     def reinitialize(self, groq_api_key: str):
@@ -45,7 +43,6 @@ class AIEngine:
         os.environ["GROQ_API_KEY"] = groq_api_key
         self._init_llm_client(groq_api_key)
 
-    # Backward-compatible helpers used by tests
     @property
     def system_prompt_path(self):
         return str(self.prompt_registry.system_prompt_path)
@@ -72,23 +69,60 @@ class AIEngine:
 
     @staticmethod
     def _is_quota_error(exc: Exception) -> bool:
-        """Detect a 429 / quota-exceeded error from the Groq API."""
         msg = str(exc).lower()
-        return "429" in msg or "rate limit" in msg or "quota" in msg or "too many requests" in msg
+        return (
+            "429" in msg
+            or "rate limit" in msg
+            or "quota" in msg
+            or "too many requests" in msg
+        )
 
-    async def run_completion(self, system_prompt: str, user_prompt: str, response_model: type) -> AIAuditOutput:
+    @staticmethod
+    def _parse_json_content(content: str) -> dict:
+        text = (content or "").strip()
+        if text.startswith("```"):
+            lines = text.split("\n")
+            lines = lines[1:] if lines else lines
+            if lines and lines[-1].strip() == "```":
+                lines = lines[:-1]
+            text = "\n".join(lines).strip()
+        return json.loads(text)
+
+    @staticmethod
+    def _schema_instruction(response_model: type) -> str:
+        schema = response_model.model_json_schema()
+        return (
+            "\n\n[JSON OUTPUT]\n"
+            "Respond with a single valid JSON object (no markdown fences) matching this schema:\n"
+            f"{json.dumps(schema, indent=2)}"
+        )
+
+    async def run_completion(
+        self, system_prompt: str, user_prompt: str, response_model: type
+    ) -> AIAuditOutput:
+        if self.client is None:
+            raise RuntimeError("AI client is not initialized")
+
+        schema_hint = self._schema_instruction(response_model)
         last_error: Optional[Exception] = None
+
         for attempt in range(settings.llm_max_retries + 1):
             try:
-                response = self.client.chat.completions.create(
-                    model=self.model_name,
-                    messages=[
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": user_prompt},
-                    ],
-                    response_model=response_model,
-                )
-                return response
+                def _call():
+                    return self.client.chat.completions.create(
+                        model=self.model_name,
+                        messages=[
+                            {"role": "system", "content": system_prompt + schema_hint},
+                            {"role": "user", "content": user_prompt},
+                        ],
+                        response_format={"type": "json_object"},
+                        temperature=0.2,
+                    )
+
+                completion = await asyncio.to_thread(_call)
+                content = completion.choices[0].message.content or "{}"
+                data = self._parse_json_content(content)
+                return response_model.model_validate(data)
             except Exception as e:
                 last_error = e
                 if self._is_quota_error(e):
@@ -96,9 +130,12 @@ class AIEngine:
                 if attempt >= settings.llm_max_retries:
                     break
                 await asyncio.sleep(2 ** attempt)
+
         raise RuntimeError(f"Error calling Groq: {last_error}")
 
-    async def run_chat(self, scraped_data: dict, audit_output: dict, message: str, history: list) -> str:
+    async def run_chat(
+        self, scraped_data: dict, audit_output: dict, message: str, history: list
+    ) -> str:
         system_prompt, _ = self._load_prompts()
         system_chat_prompt = (
             f"{system_prompt}\n\n"
@@ -112,18 +149,24 @@ class AIEngine:
             "- End with a short actionable takeaway when relevant.\n"
         )
 
+        if self.client is None:
+            raise RuntimeError("AI client is not initialized")
+
         try:
             formatted_messages = [{"role": "system", "content": system_chat_prompt}]
             for msg in history:
                 formatted_messages.append({"role": msg.role, "content": msg.content})
             formatted_messages.append({"role": "user", "content": message})
 
-            raw_client = self.client.client if hasattr(self.client, "client") else self.client
-            chat_completion = raw_client.chat.completions.create(
-                model=self.model_name,
-                messages=formatted_messages,
-            )
-            return chat_completion.choices[0].message.content
+            def _call():
+                return self.client.chat.completions.create(
+                    model=self.model_name,
+                    messages=formatted_messages,
+                    temperature=0.3,
+                )
+
+            chat_completion = await asyncio.to_thread(_call)
+            return chat_completion.choices[0].message.content or ""
         except Exception as e:
             if self._is_quota_error(e):
                 raise QuotaExceededError("GROQ_QUOTA_EXCEEDED") from e

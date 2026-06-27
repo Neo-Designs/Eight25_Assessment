@@ -3,12 +3,26 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 
-REPO_ROOT = Path(__file__).resolve().parent.parent.parent
-BACKEND_ROOT = REPO_ROOT / "backend"
-PROMPTS_DIR = REPO_ROOT / "prompts"
+BACKEND_ROOT = Path(__file__).resolve().parent.parent
+REPO_ROOT = BACKEND_ROOT.parent
 
+# Load env from repo root and backend/ (Render/Vercel local dev)
 load_dotenv(REPO_ROOT / ".env")
 load_dotenv(BACKEND_ROOT / ".env")
+
+
+def _resolve_prompts_dir() -> Path:
+    candidates = [
+        REPO_ROOT / "prompts",
+        BACKEND_ROOT / "prompts",
+    ]
+    for path in candidates:
+        if path.exists():
+            return path
+    return candidates[0]
+
+
+PROMPTS_DIR = _resolve_prompts_dir()
 
 DEFAULT_CORS_ORIGINS = [
     "http://localhost:3000",
@@ -34,11 +48,11 @@ class Settings:
 
     @property
     def groq_model_name(self) -> str:
-        return os.environ.get("GROQ_MODEL_NAME", "llama3-70b-8192")
+        return os.environ.get("GROQ_MODEL_NAME", "llama-3.3-70b-versatile")
 
     @property
     def database_url(self) -> str:
-        return os.environ.get("DATABASE_URL", "sqlite:///./webcrawler.db")
+        return os.environ.get("DATABASE_URL", "sqlite:///./audit_tool.db")
 
     @property
     def jwt_secret_key(self) -> str:

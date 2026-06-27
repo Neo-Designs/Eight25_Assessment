@@ -1,0 +1,30 @@
+Please audit the following webpage scraped data and generate a detailed report:
+
+URL: {{ url }}
+Meta Title: {{ meta_title }}
+Meta Description: {{ meta_description }}
+Word Count: {{ word_count }}
+CTA Count: {{ cta_count }}
+
+Heading Metrics:
+- H1 Count: {{ headings.h1_count }}
+- H2 Count: {{ headings.h2_count }}
+- H3 Count: {{ headings.h3_count }}
+Headings List:
+{% for h in headings.headings_list %}
+- [{{ h.tag }}] {{ h.text }}
+{% endfor %}
+
+Link Metrics:
+- Total Links: {{ links.total_links }}
+- Internal Links: {{ links.internal_links }}
+- External Links: {{ links.external_links }}
+- Ratio (Internal/External): {{ links.ratio_internal_external }}
+
+Image Metrics:
+- Total Images: {{ images.total_images }}
+- Images With Alt: {{ images.images_with_alt }}
+- Images Without Alt: {{ images.images_without_alt }}
+- Alt Text Coverage: {{ images.alt_text_coverage_pct }}%
+
+Strictly generate the structured output matching the requested schema. Ensure all findings and recommendations are strictly grounded in these metrics.

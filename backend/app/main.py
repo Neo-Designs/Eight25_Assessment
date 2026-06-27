@@ -21,7 +21,12 @@ logger = logging.getLogger("audit_tool")
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Initializing database...")
-    init_db()
+    try:
+        init_db()
+        logger.info("Database ready.")
+    except Exception:
+        logger.exception("Database initialization failed")
+        raise
     yield
 
 

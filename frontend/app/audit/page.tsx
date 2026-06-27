@@ -21,6 +21,8 @@ function AuditLoadingContent() {
   const [error, setError] = useState<string | null>(null);
   const [showGroqModal, setShowGroqModal] = useState(false);
 
+  // Prevent duplicate audits (React Strict Mode double-mount)
+  const auditStartedRef = useRef(false);
   // Store the audit params so we can retry after key update
   const pendingParamsRef = useRef<{ url: string; weights: Record<string, number> } | null>(null);
 
@@ -46,11 +48,15 @@ function AuditLoadingContent() {
   };
 
   useEffect(() => {
+    if (auditStartedRef.current) return;
+
     const url = searchParams.get('url');
     if (!url) {
       router.push('/');
       return;
     }
+
+    auditStartedRef.current = true;
 
     const seo = Number(searchParams.get('seo') || 40);
     const perf = Number(searchParams.get('perf') || 30);

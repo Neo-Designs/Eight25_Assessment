@@ -46,23 +46,27 @@ def sample_scraped_data():
 class TestAIEngineInit:
     """Tests for AIEngine initialization."""
 
-    def test_groq_provider_selected(self):
+    @patch("app.ai_engine.openai.OpenAI")
+    def test_groq_provider_selected(self, mock_openai):
         with patch.dict(os.environ, {"GROQ_API_KEY": "gsk_test-key"}, clear=False):
             engine = AIEngine()
             assert engine.provider == "groq"
             assert engine.client is not None
+            mock_openai.assert_called_once()
 
     def test_no_api_key_raises_runtime_error(self):
         with patch.dict(os.environ, {"GROQ_API_KEY": ""}, clear=True):
             with pytest.raises(RuntimeError, match="Missing required"):
                 AIEngine()
 
-    def test_model_name_set_for_groq(self):
-        with patch.dict(os.environ, {"GROQ_API_KEY": "gsk_test-key", "GROQ_MODEL_NAME": "llama3-70b-8192"}, clear=False):
+    @patch("app.ai_engine.openai.OpenAI")
+    def test_model_name_set_for_groq(self, mock_openai):
+        with patch.dict(os.environ, {"GROQ_API_KEY": "gsk_test-key", "GROQ_MODEL_NAME": "llama-3.3-70b-versatile"}, clear=False):
             engine = AIEngine()
-            assert engine.model_name == "llama3-70b-8192"
+            assert engine.model_name == "llama-3.3-70b-versatile"
 
-    def test_reinitialize_updates_key(self):
+    @patch("app.ai_engine.openai.OpenAI")
+    def test_reinitialize_updates_key(self, mock_openai):
         with patch.dict(os.environ, {"GROQ_API_KEY": "gsk_test-key"}, clear=False):
             engine = AIEngine()
             engine.reinitialize("gsk_new-key")
@@ -81,7 +85,8 @@ class TestRenderUserPrompt:
     @pytest.fixture
     def engine(self):
         with patch.dict(os.environ, {"GROQ_API_KEY": "gsk_test-key"}, clear=False):
-            return AIEngine()
+            with patch("app.ai_engine.openai.OpenAI"):
+                return AIEngine()
 
     def test_replaces_url_placeholder(self, engine, sample_scraped_data):
         template = "Audit this: {{ url }}"
@@ -156,7 +161,8 @@ class TestLoadPrompts:
     @pytest.fixture
     def engine(self):
         with patch.dict(os.environ, {"GROQ_API_KEY": "gsk_test-key"}, clear=False):
-            return AIEngine()
+            with patch("app.ai_engine.openai.OpenAI"):
+                return AIEngine()
 
     def test_load_prompts_returns_tuple(self, engine):
         system_prompt, user_prompt_template = engine._load_prompts()

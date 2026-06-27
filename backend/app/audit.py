@@ -21,17 +21,25 @@ router = APIRouter(prefix="/api", tags=["Audit"])
 logger = logging.getLogger("audit_tool.audit")
 
 scraper = PlaywrightScraper()
-try:
-    ai_engine = AIEngine()
-except Exception as e:
-    ai_engine = None
-    logger.warning(f"AIEngine init failed: {e}")
+ai_engine: AIEngine | None = None
+audit_pipeline: AuditPipeline | None = None
 
-try:
-    audit_pipeline = AuditPipeline(scraper=scraper)
-except Exception as e:
-    audit_pipeline = None
-    logger.warning(f"AuditPipeline init failed: {e}")
+
+def _ensure_pipeline() -> AuditPipeline:
+    """Lazy-init pipeline so GROQ_API_KEY can be set after server boot."""
+    global ai_engine, audit_pipeline
+    if audit_pipeline is not None:
+        return audit_pipeline
+    try:
+        ai_engine = AIEngine()
+        audit_pipeline = AuditPipeline(scraper=scraper)
+        return audit_pipeline
+    except Exception as e:
+        logger.exception("AuditPipeline init failed")
+        raise HTTPException(
+            status_code=503,
+            detail=f"Audit pipeline unavailable: {e}",
+        ) from e
 
 _audit_cache: Dict[int, Dict[str, Any]] = {}
 
@@ -105,12 +113,10 @@ async def audit_start(
     user: User = Depends(get_current_user_optional),
 ):
     url = _require_valid_url(request.url)
-
-    if audit_pipeline is None:
-        raise HTTPException(status_code=500, detail="Audit pipeline not available")
+    pipeline = _ensure_pipeline()
 
     try:
-        result = await audit_pipeline.run(
+        result = await pipeline.run(
             db,
             url=url,
             weights=request.weights,
@@ -192,6 +198,7 @@ async def drift_compare(request: DriftRequest):
 
 @router.post("/chat", response_model=ChatResponse)
 async def chat_endpoint(request: ChatRequest, db: Session = Depends(get_db)):
+    global ai_engine
     log_entry = db.query(ScanHistory).filter(ScanHistory.id == request.log_id).first()
     if not log_entry:
         raise HTTPException(status_code=404, detail="Audit log not found.")
@@ -206,7 +213,7 @@ async def chat_endpoint(request: ChatRequest, db: Session = Depends(get_db)):
         audit_out = {}
 
     if ai_engine is None:
-        raise HTTPException(status_code=500, detail="AIEngine not available")
+        ai_engine = AIEngine()
 
     try:
         reply = await ai_engine.run_chat(scraped, audit_out, request.message, request.history)
@@ -218,13 +225,15 @@ async def chat_endpoint(request: ChatRequest, db: Session = Depends(get_db)):
 @router.post("/admin/update-groq-key")
 async def update_groq_key(request: UpdateGroqKeyRequest):
     """Hot-reload the Groq API key into the running server without restart."""
+    global ai_engine, audit_pipeline
     key = (request.api_key or "").strip()
     if not key.startswith("gsk_"):
         raise HTTPException(status_code=400, detail="Invalid Groq API key format. It should start with 'gsk_'.")
     if ai_engine is None:
-        raise HTTPException(status_code=500, detail="AIEngine not available")
+        ai_engine = AIEngine()
     try:
         ai_engine.reinitialize(key)
+        audit_pipeline = AuditPipeline(scraper=scraper)
         return {"success": True, "message": "Groq API key updated successfully."}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to reinitialize engine: {str(e)}")
@@ -232,6 +241,13 @@ async def update_groq_key(request: UpdateGroqKeyRequest):
 
 @router.get("/health")
 def health_check():
+    global ai_engine, audit_pipeline
+    if ai_engine is None:
+        try:
+            ai_engine = AIEngine()
+            audit_pipeline = AuditPipeline(scraper=scraper)
+        except Exception:
+            pass
     ai_info = ai_engine.health_info() if ai_engine else {}
     return {
         "status": "healthy",

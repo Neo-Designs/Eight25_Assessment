@@ -330,6 +330,67 @@ class TestAuditStartEndpoint:
         response = client.post("/api/audit/start", json={"url": ""})
         assert response.status_code == 400
 
+    @patch("app.audit.audit_pipeline")
+    def test_audit_start_success(self, mock_pipeline, client, db_session):
+        from app.database import log_scan_history
+        from app.pipeline import AuditPipelineResult
+
+        scraped = ScrapedPageData(
+            url="https://example.com",
+            meta_title="Example",
+            meta_description="Desc",
+            word_count=500,
+            cta_count=2,
+            headings=HeadingMetrics(h1_count=1, h2_count=2, h3_count=0, headings_list=[]),
+            links=LinkMetrics(total_links=5, internal_links=3, external_links=2, ratio_internal_external=1.5),
+            images=ImageMetrics(total_images=2, images_with_alt=2, images_without_alt=0, alt_text_coverage_pct=100.0),
+        )
+        audit_output = AIAuditOutput(
+            overall_seo_health_score=80,
+            summary="Good page",
+            findings=[{
+                "category": "SEO structure",
+                "observation": "Single H1",
+                "impact": "Positive",
+                "grounding": [{"metric_name": "h1_count", "metric_value": "1"}],
+            }],
+            recommendations=[
+                {
+                    "priority": i,
+                    "title": f"Rec {i}",
+                    "details": "Do this",
+                    "expected_outcome": "Better SEO",
+                    "confidence_score": 0.9,
+                    "grounding": [{"metric_name": "word_count", "metric_value": "500"}],
+                }
+                for i in range(1, 4)
+            ],
+        )
+        entry = log_scan_history(
+            db=db_session,
+            url="https://example.com",
+            system_prompt="sp",
+            user_prompt="up",
+            scraped_data_snapshot=scraped.model_dump_json(),
+            audit_findings=audit_output.model_dump_json(),
+            seo_score=80,
+        )
+        mock_pipeline.run = AsyncMock(
+            return_value=AuditPipelineResult(
+                log_entry=entry,
+                scraped_data=scraped,
+                audit_output=audit_output,
+                system_prompt="sp",
+                user_prompt="up",
+            )
+        )
+
+        response = client.post("/api/audit/start", json={"url": "https://example.com"})
+        assert response.status_code == 200
+        data = response.json()
+        assert data["audit_id"] == entry.id
+        assert data["url"] == "https://example.com"
+
 
 class TestDriftEndpoint:
     """Tests for the /api/drift endpoint."""

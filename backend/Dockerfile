@@ -20,7 +20,7 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install all necessary system dependencies for Playwright/Chromium rendering
+# System dependencies for Playwright/Chromium
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 \
     libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 \
@@ -28,16 +28,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libxcursor1 libxi6 libxtst6 \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy installed packages and browsers from builder
 COPY --from=builder /root/.local /root/.local
 COPY --from=builder /root/.cache/ms-playwright /root/.cache/ms-playwright
 
-# Setup environment variables
 ENV PATH=/root/.local/bin:$PATH
 ENV PLAYWRIGHT_BROWSERS_PATH=/root/.cache/ms-playwright
 
+# App code + bundled prompts/
 COPY . .
 
-# Use the PORT environment variable provided by Render (defaulting to 8000)
 EXPOSE 8000
 CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
