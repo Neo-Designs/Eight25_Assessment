@@ -20,7 +20,12 @@ class AIEngine:
         self._init_llm_client()
 
     def _init_llm_client(self):
-        if settings.gemini_api_key:
+        if settings.openai_api_key:
+            openai_client = openai.OpenAI(api_key=settings.openai_api_key)
+            self.client = instructor.from_openai(openai_client)
+            self.provider = "openai"
+            self.model_name = settings.openai_model_name
+        elif settings.gemini_api_key:
             openai_client = openai.OpenAI(
                 api_key=settings.gemini_api_key,
                 base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
@@ -28,11 +33,6 @@ class AIEngine:
             self.client = instructor.from_openai(openai_client)
             self.provider = "gemini"
             self.model_name = settings.gemini_model_name
-        elif settings.openai_api_key:
-            openai_client = openai.OpenAI(api_key=settings.openai_api_key)
-            self.client = instructor.from_openai(openai_client)
-            self.provider = "openai"
-            self.model_name = settings.openai_model_name
         else:
             raise RuntimeError(
                 "Missing required GEMINI_API_KEY or OPENAI_API_KEY environment variable."
