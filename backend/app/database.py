@@ -17,7 +17,6 @@ def _build_engine():
     if url.startswith("postgresql"):
         connect_args["sslmode"] = "require"
         # Supabase transaction pooler (port 6543) does not support prepared statements.
-        connect_args["prepare_threshold"] = 0
         return create_engine(
             url,
             connect_args=connect_args,
