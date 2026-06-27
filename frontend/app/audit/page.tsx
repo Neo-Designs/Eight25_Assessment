@@ -1,10 +1,11 @@
 'use client';
 
-import React, { Suspense, useEffect, useState } from 'react';
+import React, { Suspense, useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Loader2, ShieldAlert, Sparkles, Check } from 'lucide-react';
 import { apiFetch } from '@shared/api';
+import GroqKeyModal from '@/components/GroqKeyModal';
 
 const STAGES = [
   { label: 'Initializing Page Scraper', desc: 'Booting headless Chromium context' },
@@ -18,6 +19,31 @@ function AuditLoadingContent() {
   const searchParams = useSearchParams();
   const [activeStage, setActiveStage] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [showGroqModal, setShowGroqModal] = useState(false);
+
+  // Store the audit params so we can retry after key update
+  const pendingParamsRef = useRef<{ url: string; weights: Record<string, number> } | null>(null);
+
+  const runAudit = async (url: string, weights: Record<string, number>) => {
+    setError(null);
+    try {
+      const data = await apiFetch<{ audit_id: number }>('/api/audit/start', {
+        method: 'POST',
+        body: JSON.stringify({ url, weights }),
+      });
+      setTimeout(() => {
+        router.push(`/detail/${data.audit_id}`);
+      }, 1500);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to connect to audit server.';
+      if (msg.includes('GROQ_QUOTA_EXCEEDED') || msg.includes('503')) {
+        pendingParamsRef.current = { url, weights };
+        setShowGroqModal(true);
+      } else {
+        setError(msg);
+      }
+    }
+  };
 
   useEffect(() => {
     const url = searchParams.get('url');
@@ -26,7 +52,6 @@ function AuditLoadingContent() {
       return;
     }
 
-    // Extract weights
     const seo = Number(searchParams.get('seo') || 40);
     const perf = Number(searchParams.get('perf') || 30);
     const access = Number(searchParams.get('access') || 20);
@@ -40,39 +65,25 @@ function AuditLoadingContent() {
       links: links / total
     };
 
-    // Cycle through stages visually for a smoother UX
     const stageTimer = setInterval(() => {
-      setActiveStage((prev) => {
-        if (prev < STAGES.length - 1) {
-          return prev + 1;
-        }
-        return prev;
-      });
+      setActiveStage((prev) => (prev < STAGES.length - 1 ? prev + 1 : prev));
     }, 2000);
 
-    const runAudit = async () => {
-      try {
-        const data = await apiFetch<{ audit_id: number }>('/api/audit/start', {
-          method: 'POST',
-          body: JSON.stringify({ url, weights }),
-        });
-        
-        // Wait slightly for visual completion
-        setTimeout(() => {
-          router.push(`/detail/${data.audit_id}`);
-        }, 1500);
+    runAudit(url, weights);
 
-      } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : 'Failed to connect to audit server.');
-      }
-    };
-
-    runAudit();
-
-    return () => {
-      clearInterval(stageTimer);
-    };
+    return () => clearInterval(stageTimer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, router]);
+
+  const handleKeySuccess = () => {
+    // Retry the audit automatically after key update
+    if (pendingParamsRef.current) {
+      const { url, weights } = pendingParamsRef.current;
+      pendingParamsRef.current = null;
+      setActiveStage(0);
+      runAudit(url, weights);
+    }
+  };
 
   if (error) {
     return (
@@ -93,70 +104,78 @@ function AuditLoadingContent() {
   }
 
   return (
-    <div className="min-h-screen bg-light-bg dark:bg-dark-bg flex flex-col items-center justify-center p-6 text-light-text dark:text-dark-text overflow-hidden relative">
-      <div className="absolute top-1/2 left-1/2 w-[500px] h-[500px] bg-primary/5 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2 pointer-events-none" />
+    <>
+      <GroqKeyModal
+        open={showGroqModal}
+        onClose={() => { setShowGroqModal(false); router.push('/'); }}
+        onSuccess={handleKeySuccess}
+      />
 
-      <div className="max-w-lg w-full text-center space-y-8 relative z-10">
-        <div className="space-y-3">
-          <div className="h-12 w-12 bg-primary/10 border border-primary/20 text-primary rounded-2xl flex items-center justify-center mx-auto animate-pulse">
-            <Sparkles className="h-5 w-5" />
+      <div className="min-h-screen bg-light-bg dark:bg-dark-bg flex flex-col items-center justify-center p-6 text-light-text dark:text-dark-text overflow-hidden relative">
+        <div className="absolute top-1/2 left-1/2 w-[500px] h-[500px] bg-primary/5 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2 pointer-events-none" />
+
+        <div className="max-w-lg w-full text-center space-y-8 relative z-10">
+          <div className="space-y-3">
+            <div className="h-12 w-12 bg-primary/10 border border-primary/20 text-primary rounded-2xl flex items-center justify-center mx-auto animate-pulse">
+              <Sparkles className="h-5 w-5" />
+            </div>
+            <h1 className="text-2xl font-bold text-light-text dark:text-dark-text">
+              Analyzing Webpage
+            </h1>
+            <p className="text-xs text-secondary font-mono break-all">{searchParams.get('url')}</p>
           </div>
-          <h1 className="text-2xl font-bold text-light-text dark:text-dark-text">
-            Analyzing Webpage
-          </h1>
-          <p className="text-xs text-secondary font-mono break-all">{searchParams.get('url')}</p>
-        </div>
 
-        {/* Dynamic Status Progress Stages */}
-        <div className="bg-light-surface dark:bg-dark-surface border border-border rounded-3xl p-6 text-left space-y-4">
-          {STAGES.map((stage, idx) => {
-            const isCompleted = idx < activeStage;
-            const isActive = idx === activeStage;
+          {/* Dynamic Status Progress Stages */}
+          <div className="bg-light-surface dark:bg-dark-surface border border-border rounded-3xl p-6 text-left space-y-4">
+            {STAGES.map((stage, idx) => {
+              const isCompleted = idx < activeStage;
+              const isActive = idx === activeStage;
 
-            return (
-              <div 
-                key={idx} 
-                className={`flex items-start space-x-4 p-3 rounded-xl transition ${
-                  isActive ? 'bg-light-bg dark:bg-dark-bg border border-primary/20 shadow-sm' : isCompleted ? 'opacity-60' : 'opacity-40'
-                }`}
-              >
-                <div className="flex-shrink-0 mt-0.5">
-                  {isCompleted ? (
-                    <div className="h-5 w-5 bg-primary text-white rounded-full flex items-center justify-center text-[10px] font-bold">
-                      <Check className="h-3 w-3" />
-                    </div>
-                  ) : isActive ? (
-                    <Loader2 className="h-5 w-5 text-primary animate-spin" />
-                  ) : (
-                    <div className="h-5 w-5 bg-light-bg dark:bg-dark-bg border border-border text-secondary rounded-full flex items-center justify-center text-[10px] font-bold">
-                      {idx + 1}
-                    </div>
-                  )}
+              return (
+                <div
+                  key={idx}
+                  className={`flex items-start space-x-4 p-3 rounded-xl transition ${
+                    isActive ? 'bg-light-bg dark:bg-dark-bg border border-primary/20 shadow-sm' : isCompleted ? 'opacity-60' : 'opacity-40'
+                  }`}
+                >
+                  <div className="flex-shrink-0 mt-0.5">
+                    {isCompleted ? (
+                      <div className="h-5 w-5 bg-primary text-white rounded-full flex items-center justify-center text-[10px] font-bold">
+                        <Check className="h-3 w-3" />
+                      </div>
+                    ) : isActive ? (
+                      <Loader2 className="h-5 w-5 text-primary animate-spin" />
+                    ) : (
+                      <div className="h-5 w-5 bg-light-bg dark:bg-dark-bg border border-border text-secondary rounded-full flex items-center justify-center text-[10px] font-bold">
+                        {idx + 1}
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <h3 className={`text-sm font-semibold ${isActive ? 'text-light-text dark:text-dark-text' : 'text-secondary'}`}>
+                      {stage.label}
+                    </h3>
+                    {isActive && (
+                      <p className="text-xs text-secondary mt-1">{stage.desc}</p>
+                    )}
+                  </div>
                 </div>
-                <div>
-                  <h3 className={`text-sm font-semibold ${isActive ? 'text-light-text dark:text-dark-text' : 'text-secondary'}`}>
-                    {stage.label}
-                  </h3>
-                  {isActive && (
-                    <p className="text-xs text-secondary mt-1">{stage.desc}</p>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
 
-        {/* Dynamic Glowing Bar */}
-        <div className="h-1.5 w-full bg-light-surface dark:bg-dark-surface rounded-full overflow-hidden border border-border">
-          <motion.div 
-            initial={{ width: '0%' }}
-            animate={{ width: `${((activeStage + 1) / STAGES.length) * 100}%` }}
-            transition={{ duration: 1.5 }}
-            className="h-full bg-primary rounded-full shadow-lg shadow-primary/50"
-          />
+          {/* Dynamic Glowing Bar */}
+          <div className="h-1.5 w-full bg-light-surface dark:bg-dark-surface rounded-full overflow-hidden border border-border">
+            <motion.div
+              initial={{ width: '0%' }}
+              animate={{ width: `${((activeStage + 1) / STAGES.length) * 100}%` }}
+              transition={{ duration: 1.5 }}
+              className="h-full bg-primary rounded-full shadow-lg shadow-primary/50"
+            />
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
 

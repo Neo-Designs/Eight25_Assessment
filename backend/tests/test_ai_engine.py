@@ -1,10 +1,10 @@
-"""Unit tests for app/ai_engine.py - AI Engine prompt rendering and initialization."""
+"""Unit tests for app/ai_engine.py — Groq-only engine."""
 import os
 import pytest
 from unittest.mock import patch, MagicMock
 
 from app.models.schemas import ScrapedPageData, HeadingMetrics, LinkMetrics, ImageMetrics
-from app.ai_engine import AIEngine
+from app.ai_engine import AIEngine, QuotaExceededError
 
 
 @pytest.fixture
@@ -46,33 +46,33 @@ def sample_scraped_data():
 class TestAIEngineInit:
     """Tests for AIEngine initialization."""
 
-    def test_gemini_provider_selected(self):
-        with patch.dict(os.environ, {"GEMINI_API_KEY": "test-key", "XAI_API_KEY": "", "GROQ_API_KEY": ""}, clear=False):
+    def test_groq_provider_selected(self):
+        with patch.dict(os.environ, {"GROQ_API_KEY": "gsk_test-key"}, clear=False):
             engine = AIEngine()
-            assert engine.provider == "gemini"
+            assert engine.provider == "groq"
             assert engine.client is not None
 
-    def test_openai_provider_selected(self):
-        with patch.dict(os.environ, {"OPENAI_API_KEY": "test-key", "GEMINI_API_KEY": "", "XAI_API_KEY": "", "GROQ_API_KEY": ""}, clear=False):
-            # Remove GEMINI_API_KEY to force OpenAI path
-            env = os.environ.copy()
-            env.pop("GEMINI_API_KEY", None)
-            env.pop("XAI_API_KEY", None)
-            env.pop("GROQ_API_KEY", None)
-            with patch.dict(os.environ, env, clear=True):
-                with patch.dict(os.environ, {"OPENAI_API_KEY": "test-key"}):
-                    engine = AIEngine()
-                    assert engine.provider == "openai"
-
     def test_no_api_key_raises_runtime_error(self):
-        with patch.dict(os.environ, {"GEMINI_API_KEY": "", "OPENAI_API_KEY": ""}, clear=True):
+        with patch.dict(os.environ, {"GROQ_API_KEY": ""}, clear=True):
             with pytest.raises(RuntimeError, match="Missing required"):
                 AIEngine()
 
-    def test_model_name_set_for_gemini(self):
-        with patch.dict(os.environ, {"GEMINI_API_KEY": "test-key", "XAI_API_KEY": "", "GROQ_API_KEY": ""}, clear=False):
+    def test_model_name_set_for_groq(self):
+        with patch.dict(os.environ, {"GROQ_API_KEY": "gsk_test-key", "GROQ_MODEL_NAME": "llama3-70b-8192"}, clear=False):
             engine = AIEngine()
-            assert "gemini" in engine.model_name.lower()
+            assert engine.model_name == "llama3-70b-8192"
+
+    def test_reinitialize_updates_key(self):
+        with patch.dict(os.environ, {"GROQ_API_KEY": "gsk_test-key"}, clear=False):
+            engine = AIEngine()
+            engine.reinitialize("gsk_new-key")
+            assert os.environ.get("GROQ_API_KEY") == "gsk_new-key"
+
+    def test_quota_error_detection(self):
+        assert AIEngine._is_quota_error(Exception("429 Too Many Requests"))
+        assert AIEngine._is_quota_error(Exception("rate limit exceeded"))
+        assert AIEngine._is_quota_error(Exception("quota exceeded"))
+        assert not AIEngine._is_quota_error(Exception("500 Internal Server Error"))
 
 
 class TestRenderUserPrompt:
@@ -80,7 +80,7 @@ class TestRenderUserPrompt:
 
     @pytest.fixture
     def engine(self):
-        with patch.dict(os.environ, {"GEMINI_API_KEY": "test-key"}, clear=False):
+        with patch.dict(os.environ, {"GROQ_API_KEY": "gsk_test-key"}, clear=False):
             return AIEngine()
 
     def test_replaces_url_placeholder(self, engine, sample_scraped_data):
@@ -155,7 +155,7 @@ class TestLoadPrompts:
 
     @pytest.fixture
     def engine(self):
-        with patch.dict(os.environ, {"GEMINI_API_KEY": "test-key"}, clear=False):
+        with patch.dict(os.environ, {"GROQ_API_KEY": "gsk_test-key"}, clear=False):
             return AIEngine()
 
     def test_load_prompts_returns_tuple(self, engine):

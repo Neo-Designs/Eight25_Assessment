@@ -8,7 +8,7 @@ import logging
 
 from app.database import get_db, get_scan_history
 from app.scraper import PlaywrightScraper
-from app.ai_engine import AIEngine
+from app.ai_engine import AIEngine, QuotaExceededError
 from app.pipeline import AuditPipeline
 from app.models.schemas import (
     ScrapedPageData, AIAuditOutput, ChatRequest, ChatResponse,
@@ -45,6 +45,10 @@ class AuditStartResponse(BaseModel):
     audit_id: int
     url: str
     message: str
+
+
+class UpdateGroqKeyRequest(BaseModel):
+    api_key: str
 
 
 class AuditResultsResponse(BaseModel):
@@ -112,6 +116,8 @@ async def audit_start(
             weights=request.weights,
             user_id=user.id if user else None,
         )
+    except QuotaExceededError:
+        raise HTTPException(status_code=503, detail="GROQ_QUOTA_EXCEEDED")
     except RuntimeError as e:
         raise HTTPException(status_code=502, detail=str(e))
     except Exception as e:
@@ -202,8 +208,26 @@ async def chat_endpoint(request: ChatRequest, db: Session = Depends(get_db)):
     if ai_engine is None:
         raise HTTPException(status_code=500, detail="AIEngine not available")
 
-    reply = await ai_engine.run_chat(scraped, audit_out, request.message, request.history)
+    try:
+        reply = await ai_engine.run_chat(scraped, audit_out, request.message, request.history)
+    except QuotaExceededError:
+        raise HTTPException(status_code=503, detail="GROQ_QUOTA_EXCEEDED")
     return ChatResponse(response=reply)
+
+
+@router.post("/admin/update-groq-key")
+async def update_groq_key(request: UpdateGroqKeyRequest):
+    """Hot-reload the Groq API key into the running server without restart."""
+    key = (request.api_key or "").strip()
+    if not key.startswith("gsk_"):
+        raise HTTPException(status_code=400, detail="Invalid Groq API key format. It should start with 'gsk_'.")
+    if ai_engine is None:
+        raise HTTPException(status_code=500, detail="AIEngine not available")
+    try:
+        ai_engine.reinitialize(key)
+        return {"success": True, "message": "Groq API key updated successfully."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to reinitialize engine: {str(e)}")
 
 
 @router.get("/health")

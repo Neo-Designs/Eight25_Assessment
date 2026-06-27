@@ -8,6 +8,7 @@ import {
   ShieldCheck, MessageSquare, Send, Loader2, Database, Cpu
 } from 'lucide-react';
 import { apiFetch } from '@shared/api';
+import GroqKeyModal from '@/components/GroqKeyModal';
 
 interface GroundingSource {
   metric_name: string;
@@ -89,6 +90,7 @@ export default function AuditDetailPage() {
   const [chatLoading, setChatLoading] = useState(false);
   const [showInsightLogs, setShowInsightLogs] = useState(false);
   const [dbLogDetail, setDbLogDetail] = useState<{ system_prompt: string; user_prompt: string } | null>(null);
+  const [showGroqModal, setShowGroqModal] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   // ── Data fetch ────────────────────────────────────────────────────────────
@@ -148,11 +150,17 @@ export default function AuditDetailPage() {
         body: JSON.stringify({ log_id: logId, message: userMsg, history: messages }),
       });
       setMessages(prev => [...prev, { role: 'assistant', content: data.response }]);
-    } catch {
-      setMessages(prev => [
-        ...prev,
-        { role: 'assistant', content: '**System Error:** Failed to fetch reply from engine.' },
-      ]);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : '';
+      if (msg.includes('GROQ_QUOTA_EXCEEDED') || msg.includes('503')) {
+        setShowGroqModal(true);
+        setMessages(prev => [...prev, { role: 'assistant', content: '⚠️ Groq API quota reached. Please update your API key using the prompt that just appeared.' }]);
+      } else {
+        setMessages(prev => [
+          ...prev,
+          { role: 'assistant', content: '**System Error:** Failed to fetch reply from engine.' },
+        ]);
+      }
     } finally {
       setChatLoading(false);
     }
@@ -216,6 +224,12 @@ export default function AuditDetailPage() {
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-light-bg dark:bg-dark-bg text-light-text dark:text-dark-text selection:bg-primary selection:text-white pb-16">
+
+      <GroqKeyModal
+        open={showGroqModal}
+        onClose={() => setShowGroqModal(false)}
+        onSuccess={() => setShowGroqModal(false)}
+      />
 
       {/* ── Header ─────────────────────────────────────────────────── */}
       <header className="border-b border-border bg-light-bg/80 dark:bg-dark-bg/80 backdrop-blur sticky top-0 z-50">

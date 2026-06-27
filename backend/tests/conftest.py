@@ -9,7 +9,7 @@ from sqlalchemy.pool import StaticPool
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Set a fake API key so AIEngine doesn't crash on import
-os.environ.setdefault("GEMINI_API_KEY", "fake-key-for-testing")
+os.environ.setdefault("GROQ_API_KEY", "gsk_fake-key-for-testing")
 
 from app.models.db_models import Base, User, ScanHistory
 

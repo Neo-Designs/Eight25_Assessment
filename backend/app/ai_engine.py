@@ -1,59 +1,49 @@
+"""AI Engine — Groq-powered LLM gateway with structured output and quota recovery."""
 import json
+import os
+import asyncio
 from typing import Optional, Tuple
 
 import instructor
 import openai
-import asyncio
 
 from app.config import settings
 from app.models.schemas import AIAuditOutput, ScrapedPageData
 from app.prompt_registry import PromptRegistry
 
 
-class AIEngine:
-    """LLM gateway with structured output (Instructor) and conversational chat."""
+class QuotaExceededError(RuntimeError):
+    """Raised when the Groq API returns a 429 rate-limit / quota error."""
+    pass
 
-    def __init__(self):
+
+class AIEngine:
+    """LLM gateway using Groq with structured output (Instructor) and conversational chat."""
+
+    def __init__(self, groq_api_key: str | None = None):
         self.prompt_registry = PromptRegistry()
         self.client = None
-        self.provider = None
+        self.provider = "groq"
         self.model_name = None
-        self._init_llm_client()
+        self._init_llm_client(groq_api_key)
 
-    def _init_llm_client(self):
-        if settings.xai_api_key:
-            openai_client = openai.OpenAI(
-                api_key=settings.xai_api_key,
-                base_url="https://api.x.ai/v1",
-            )
-            self.client = instructor.from_openai(openai_client)
-            self.provider = "xai"
-            self.model_name = settings.xai_model_name
-        elif settings.groq_api_key:
-            openai_client = openai.OpenAI(
-                api_key=settings.groq_api_key,
-                base_url="https://api.groq.com/openai/v1",
-            )
-            self.client = instructor.from_openai(openai_client)
-            self.provider = "groq"
-            self.model_name = settings.groq_model_name
-        elif settings.openai_api_key:
-            openai_client = openai.OpenAI(api_key=settings.openai_api_key)
-            self.client = instructor.from_openai(openai_client)
-            self.provider = "openai"
-            self.model_name = settings.openai_model_name
-        elif settings.gemini_api_key:
-            openai_client = openai.OpenAI(
-                api_key=settings.gemini_api_key,
-                base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
-            )
-            self.client = instructor.from_openai(openai_client)
-            self.provider = "gemini"
-            self.model_name = settings.gemini_model_name
-        else:
+    def _init_llm_client(self, groq_api_key: str | None = None):
+        key = groq_api_key or settings.groq_api_key
+        if not key:
             raise RuntimeError(
-                "Missing required GEMINI_API_KEY or OPENAI_API_KEY environment variable."
+                "Missing required GROQ_API_KEY environment variable."
             )
+        openai_client = openai.OpenAI(
+            api_key=key,
+            base_url="https://api.groq.com/openai/v1",
+        )
+        self.client = instructor.from_openai(openai_client)
+        self.model_name = settings.groq_model_name
+
+    def reinitialize(self, groq_api_key: str):
+        """Hot-reload a new Groq API key without restarting the server."""
+        os.environ["GROQ_API_KEY"] = groq_api_key
+        self._init_llm_client(groq_api_key)
 
     # Backward-compatible helpers used by tests
     @property
@@ -80,6 +70,12 @@ class AIEngine:
     def _render_user_prompt(self, template: str, data: ScrapedPageData) -> str:
         return self.prompt_registry.render_user_prompt(template, data)
 
+    @staticmethod
+    def _is_quota_error(exc: Exception) -> bool:
+        """Detect a 429 / quota-exceeded error from the Groq API."""
+        msg = str(exc).lower()
+        return "429" in msg or "rate limit" in msg or "quota" in msg or "too many requests" in msg
+
     async def run_completion(self, system_prompt: str, user_prompt: str, response_model: type) -> AIAuditOutput:
         last_error: Optional[Exception] = None
         for attempt in range(settings.llm_max_retries + 1):
@@ -95,10 +91,12 @@ class AIEngine:
                 return response
             except Exception as e:
                 last_error = e
+                if self._is_quota_error(e):
+                    raise QuotaExceededError("GROQ_QUOTA_EXCEEDED") from e
                 if attempt >= settings.llm_max_retries:
                     break
                 await asyncio.sleep(2 ** attempt)
-        raise RuntimeError(f"Error calling LLM provider {self.provider}: {last_error}")
+        raise RuntimeError(f"Error calling Groq: {last_error}")
 
     async def run_chat(self, scraped_data: dict, audit_output: dict, message: str, history: list) -> str:
         system_prompt, _ = self._load_prompts()
@@ -127,6 +125,8 @@ class AIEngine:
             )
             return chat_completion.choices[0].message.content
         except Exception as e:
+            if self._is_quota_error(e):
+                raise QuotaExceededError("GROQ_QUOTA_EXCEEDED") from e
             return f"Error communicating with assistant: {str(e)}"
 
     def health_info(self) -> dict:
