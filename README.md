@@ -60,6 +60,18 @@ For this enterprise audit tool, we consciously chose a **single-page analysis de
 * **Contextual Quality**: General crawlers gather shallow metrics across thousands of pages. By focusing on a single page, we can extract granular details (such as full heading hierarchies, complete alt-text coverage, and specific button-by-button Call-To-Action counts) to feed high-fidelity context to the LLM.
 * **Cost Efficiency**: Auditing an entire website of thousands of pages would balloon LLM token usage. A targeted single-page audit allows developers to optimize high-impact landing pages or templates individually without wasting thousands of dollars on duplicate template audits.
 
+### What Would You Improve With More Time
+
+Given additional time, the following improvements would be prioritized:
+1. **Dynamic Authentication for Scraper**: Allow the Playwright scraper to accept login credentials or cookies to audit pages behind authentication walls.
+2. **Streaming AI Responses**: Implement Server-Sent Events (SSE) to stream the AI output to the frontend. This would significantly reduce the perceived wait time for the user during the pass-1 and pass-2 LLM inferences.
+3. **Advanced Visual Analysis**: Use the multimodal capabilities of `gpt-4o` or `gemini-1.5-pro` by sending a full-page screenshot (captured via Playwright) to the model alongside the DOM metrics. This would allow the AI to detect visual hierarchy, contrast issues, and layout bugs.
+4. **Export Capabilities**: Add functionality to export the final audit report directly to PDF or CSV for agency client presentations.
+
+### Prompt Logs / Reasoning Traces
+
+Detailed visibility into how the AI layer is structured, including the exact **System Prompts**, **User Prompts**, and **Structured Schemas** used for inference, is available in the [`Prompt_Logs.md`](./Prompt_Logs.md) file included in the root of this repository.
+
 ---
 
 ## Local Setup & Installation

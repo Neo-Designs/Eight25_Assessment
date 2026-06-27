@@ -257,8 +257,8 @@ export default function AuditDetailPage() {
         </div>
 
         {/* 1) FACTUAL METRICS */}
-        <section className="bg-light-surface dark:bg-dark-surface border border-border rounded-2xl p-6">
-          <h2 className="text-sm font-bold tracking-wider text-secondary uppercase mb-4">Factual Metrics</h2>
+        <section className="bg-light-surface dark:bg-dark-surface border border-border rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
+          <h2 className="text-lg font-bold tracking-wide text-light-text dark:text-dark-text capitalize mb-6 border-b border-border pb-2">Factual Metrics</h2>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Metrics list */}
@@ -321,22 +321,22 @@ export default function AuditDetailPage() {
         </section>
 
         {/* 2) AI INSIGHTS — grouped by category */}
-        <section className="bg-light-surface dark:bg-dark-surface border border-border rounded-2xl p-6">
-          <h2 className="text-sm font-bold tracking-wider text-secondary uppercase mb-4">AI Insights</h2>
+        <section className="bg-light-surface dark:bg-dark-surface border border-border rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
+          <h2 className="text-lg font-bold tracking-wide text-light-text dark:text-dark-text capitalize mb-6 border-b border-border pb-2">AI Insights</h2>
 
           <div className="space-y-4">
             {['SEO structure','Messaging clarity','CTA usage','Content depth','UX/structural concerns'].map((cat) => {
-              const items = (auditData?.audit_output?.findings || []).filter((f: any) => f.category === cat);
+              const items = (auditData?.audit_output?.findings || []).filter((f: AuditFinding) => f.category === cat);
               if (!items || items.length === 0) return null;
               return (
                 <div key={cat} className="p-4 border border-border rounded-2xl bg-light-bg dark:bg-dark-bg">
                   <div className="text-xs font-semibold text-secondary uppercase tracking-wider mb-2">{cat}</div>
                   <ul className="text-sm text-secondary list-disc pl-5 space-y-2">
-                    {items.map((it: any, idx: number) => (
+                    {items.map((it: AuditFinding, idx: number) => (
                       <li key={idx}>
                         <div className="font-semibold text-light-text dark:text-dark-text">{it.observation}</div>
                         <div className="text-xs text-secondary mt-1">Impact: {it.impact}</div>
-                        <div className="text-xs text-secondary mt-1">Grounding: {it.grounding?.map((g: any) => `${g.metric_name}: ${g.metric_value}`).join('; ')}</div>
+                        <div className="text-xs text-secondary mt-1">Grounding: {it.grounding?.map((g: GroundingSource) => `${g.metric_name}: ${g.metric_value}`).join('; ')}</div>
                       </li>
                     ))}
                   </ul>
@@ -347,8 +347,8 @@ export default function AuditDetailPage() {
         </section>
 
         {/* 3) RECOMMENDATIONS */}
-        <section className="bg-light-surface dark:bg-dark-surface border border-border rounded-2xl p-6">
-          <h2 className="text-sm font-bold tracking-wider text-secondary uppercase mb-4">Prioritized Recommendations</h2>
+        <section className="bg-light-surface dark:bg-dark-surface border border-border rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
+          <h2 className="text-lg font-bold tracking-wide text-light-text dark:text-dark-text capitalize mb-6 border-b border-border pb-2">Recommendations</h2>
 
           <div className="space-y-4">
             {recs.slice(0, 5).map((rec, idx) => (
@@ -375,12 +375,12 @@ export default function AuditDetailPage() {
         </section>
 
         {/* 4) AI CHAT */}
-        <section className="bg-light-surface dark:bg-dark-surface border border-border rounded-3xl p-5">
-          <div className="flex items-center space-x-2 text-primary border-b border-border pb-3 mb-4">
-            <MessageSquare className="h-5 w-5" />
+        <section className="bg-light-surface dark:bg-dark-surface border border-border rounded-3xl p-6 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center space-x-3 border-b border-border pb-4 mb-5">
+            <MessageSquare className="h-6 w-6 text-primary" />
             <div>
-              <h3 className="text-sm font-bold text-light-text dark:text-dark-text">AI Assistant</h3>
-              <p className="text-[10px] text-secondary">Ask questions about this audit's findings</p>
+              <h2 className="text-lg font-bold tracking-wide text-light-text dark:text-dark-text capitalize">AI Chatbot for Assistance</h2>
+              <p className="text-xs text-secondary mt-1">Ask questions about this audit's findings</p>
             </div>
           </div>
 
