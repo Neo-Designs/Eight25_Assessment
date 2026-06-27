@@ -7,7 +7,7 @@ import {
   ArrowLeft, AlertCircle, ExternalLink, Image as ImageIcon, 
   ShieldCheck, MessageSquare, Send, Loader2, Database, Cpu
 } from 'lucide-react';
-import { apiFetch } from '@/lib/api';
+import { apiFetch } from '@shared/api';
 
 interface GroundingSource {
   metric_name: string;

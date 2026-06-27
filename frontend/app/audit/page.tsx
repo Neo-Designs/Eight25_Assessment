@@ -4,7 +4,7 @@ import React, { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Loader2, ShieldAlert, Sparkles, Check } from 'lucide-react';
-import { apiFetch } from '@/lib/api';
+import { apiFetch } from '@shared/api';
 
 const STAGES = [
   { label: 'Initializing Page Scraper', desc: 'Booting headless Chromium context' },

@@ -7,7 +7,7 @@ import {
   WifiOff, TrendingUp, GitCompare,
 } from 'lucide-react';
 
-import { apiFetch } from '@/lib/api';
+import { apiFetch } from '@shared/api';
 
 interface HistoryItem {
   id: number;

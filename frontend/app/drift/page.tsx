@@ -5,7 +5,7 @@ import {
   BarChart3, Target, Loader2, WifiOff, GitCompare,
 } from 'lucide-react';
 
-import { apiFetch } from '@/lib/api';
+import { apiFetch } from '@shared/api';
 
 interface ScrapedPageData {
   url: string;
