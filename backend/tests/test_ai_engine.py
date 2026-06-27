@@ -47,16 +47,18 @@ class TestAIEngineInit:
     """Tests for AIEngine initialization."""
 
     def test_gemini_provider_selected(self):
-        with patch.dict(os.environ, {"GEMINI_API_KEY": "test-key"}, clear=False):
+        with patch.dict(os.environ, {"GEMINI_API_KEY": "test-key", "XAI_API_KEY": "", "GROQ_API_KEY": ""}, clear=False):
             engine = AIEngine()
             assert engine.provider == "gemini"
             assert engine.client is not None
 
     def test_openai_provider_selected(self):
-        with patch.dict(os.environ, {"OPENAI_API_KEY": "test-key", "GEMINI_API_KEY": ""}, clear=False):
+        with patch.dict(os.environ, {"OPENAI_API_KEY": "test-key", "GEMINI_API_KEY": "", "XAI_API_KEY": "", "GROQ_API_KEY": ""}, clear=False):
             # Remove GEMINI_API_KEY to force OpenAI path
             env = os.environ.copy()
             env.pop("GEMINI_API_KEY", None)
+            env.pop("XAI_API_KEY", None)
+            env.pop("GROQ_API_KEY", None)
             with patch.dict(os.environ, env, clear=True):
                 with patch.dict(os.environ, {"OPENAI_API_KEY": "test-key"}):
                     engine = AIEngine()
@@ -68,7 +70,7 @@ class TestAIEngineInit:
                 AIEngine()
 
     def test_model_name_set_for_gemini(self):
-        with patch.dict(os.environ, {"GEMINI_API_KEY": "test-key"}, clear=False):
+        with patch.dict(os.environ, {"GEMINI_API_KEY": "test-key", "XAI_API_KEY": "", "GROQ_API_KEY": ""}, clear=False):
             engine = AIEngine()
             assert "gemini" in engine.model_name.lower()
 

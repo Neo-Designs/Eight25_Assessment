@@ -58,7 +58,7 @@ class Settings:
 
     @property
     def xai_model_name(self) -> str:
-        return os.environ.get("XAI_MODEL_NAME", "grok-beta")
+        return os.environ.get("XAI_MODEL_NAME", "grok-4.3")
 
     @property
     def database_url(self) -> str:
