@@ -63,6 +63,9 @@ class PlaywrightScraper:
                 if text:
                     headings_list.append({"tag": "h3", "text": text})
             
+            # Truncate to maximum 40 headings to save LLM tokens and avoid Rate Limits
+            headings_list = headings_list[:40]
+            
             heading_metrics = HeadingMetrics(
                 h1_count=len(h1_elements),
                 h2_count=len(h2_elements),

@@ -3,6 +3,7 @@ from typing import Optional, Tuple
 
 import instructor
 import openai
+import asyncio
 
 from app.config import settings
 from app.models.schemas import AIAuditOutput, ScrapedPageData
@@ -80,6 +81,7 @@ class AIEngine:
                 last_error = e
                 if attempt >= settings.llm_max_retries:
                     break
+                await asyncio.sleep(2 ** attempt)
         raise RuntimeError(f"Error calling LLM provider {self.provider}: {last_error}")
 
     async def run_chat(self, scraped_data: dict, audit_output: dict, message: str, history: list) -> str:
