@@ -45,6 +45,22 @@ class Settings:
         return os.environ.get("GEMINI_MODEL_NAME", "gemini-2.0-flash")
 
     @property
+    def groq_api_key(self) -> str:
+        return os.environ.get("GROQ_API_KEY", "")
+
+    @property
+    def groq_model_name(self) -> str:
+        return os.environ.get("GROQ_MODEL_NAME", "llama3-70b-8192")
+
+    @property
+    def xai_api_key(self) -> str:
+        return os.environ.get("XAI_API_KEY", "")
+
+    @property
+    def xai_model_name(self) -> str:
+        return os.environ.get("XAI_MODEL_NAME", "grok-beta")
+
+    @property
     def database_url(self) -> str:
         return os.environ.get("DATABASE_URL", "sqlite:///./webcrawler.db")
 

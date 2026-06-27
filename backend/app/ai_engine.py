@@ -21,7 +21,23 @@ class AIEngine:
         self._init_llm_client()
 
     def _init_llm_client(self):
-        if settings.openai_api_key:
+        if settings.xai_api_key:
+            openai_client = openai.OpenAI(
+                api_key=settings.xai_api_key,
+                base_url="https://api.x.ai/v1",
+            )
+            self.client = instructor.from_openai(openai_client)
+            self.provider = "xai"
+            self.model_name = settings.xai_model_name
+        elif settings.groq_api_key:
+            openai_client = openai.OpenAI(
+                api_key=settings.groq_api_key,
+                base_url="https://api.groq.com/openai/v1",
+            )
+            self.client = instructor.from_openai(openai_client)
+            self.provider = "groq"
+            self.model_name = settings.groq_model_name
+        elif settings.openai_api_key:
             openai_client = openai.OpenAI(api_key=settings.openai_api_key)
             self.client = instructor.from_openai(openai_client)
             self.provider = "openai"
